@@ -14,7 +14,6 @@ import pygame
 import pygame.gfxdraw
 import pygame.font
 from . import color
-import string
 
 if (sys.hexversion < 0x03000000):
     import Tkinter
@@ -40,15 +39,8 @@ from .color import YELLOW
 from .color import DARK_RED
 from .color import DARK_GREEN
 from .color import DARK_BLUE
-from .color import GRAY
-from .color import DARK_GRAY
-from .color import LIGHT_GRAY
 from .color import ORANGE
-from .color import VIOLET
 from .color import PINK
-from .color import BOOK_BLUE
-from .color import BOOK_LIGHT_BLUE
-from .color import BOOK_RED
 
 #-----------------------------------------------------------------------
 
