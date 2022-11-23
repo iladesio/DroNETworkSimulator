@@ -1,5 +1,5 @@
 from src.routing_algorithms.BASE_routing import BASE_routing
-
+import src.utilities.utilities as util
 
 class GeoRouting(BASE_routing):
 
@@ -17,4 +17,20 @@ class GeoRouting(BASE_routing):
 
         # TODO: Implement your code HERE
 
-        return None
+        d0_coords = self.drone.coords
+
+        drone_to_send = None
+
+        distance_d0_to_depot = util.euclidean_distance(d0_coords, self.drone.depot.coords)
+        best_distance = distance_d0_to_depot
+
+        for hpk, d_drone in opt_neighbors:
+            d_pos = hpk.cur_pos
+
+            distance_d_to_depot = util.euclidean_distance(d_pos, self.drone.depot.coords)
+
+            if distance_d_to_depot < best_distance:
+                drone_to_send = d_drone
+                best_distance = distance_d_to_depot
+
+        return drone_to_send
