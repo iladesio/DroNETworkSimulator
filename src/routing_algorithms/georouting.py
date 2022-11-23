@@ -15,9 +15,7 @@ class GeoRouting(BASE_routing):
         @return: The best drone to use as relay or None if no relay is selected
         """
 
-        # TODO: Implement your code HERE
-
-        d0_coords = self.drone.coords
+        d0_coords = self.drone.next_target()
 
         drone_to_send = None
 
@@ -25,7 +23,7 @@ class GeoRouting(BASE_routing):
         best_distance = distance_d0_to_depot
 
         for hpk, d_drone in opt_neighbors:
-            d_pos = hpk.cur_pos
+            d_pos = hpk.next_target
 
             distance_d_to_depot = util.euclidean_distance(d_pos, self.drone.depot.coords)
 

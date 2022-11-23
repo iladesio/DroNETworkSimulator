@@ -235,7 +235,7 @@ class Simulator:
         print("Closing simulation")
 
         self.print_metrics(plot_id="final")
-        self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
+        # self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
 
     def print_metrics(self, plot_id="final"):
         """ add signature """
