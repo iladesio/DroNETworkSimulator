@@ -198,23 +198,24 @@ class Depot(Entity):
     def all_packets(self):
         return self.__buffer
 
-    def transfer_notified_packets(self, drone, cur_step):
+    def transfer_notified_packets(self, current_drone, cur_step):
         """ function called when a drone wants to offload packets to the depot """
 
-        packets_to_offload = drone.all_packets()
+        packets_to_offload = current_drone.all_packets()
         self.__buffer += packets_to_offload
 
         for pck in packets_to_offload:
 
-            if self.simulator.routing_algorithm.name not in "GEO" "RND":
+            if self.simulator.routing_algorithm.name not in "GEO" "RND" "GEOS":
 
                 feedback = 1
                 delivery_delay = cur_step - pck.event_ref.current_time
 
-                self.simulator.drones[0].routing_algorithm.feedback(drone,
-                                                                    pck.event_ref.identifier,
-                                                                    delivery_delay,
-                                                                    feedback)
+                for drone in self.simulator.drones:
+                    drone.routing_algorithm.feedback(current_drone,
+                                                     pck.event_ref.identifier,
+                                                     delivery_delay,
+                                                     feedback)
 
             # add metrics: all the packets notified to the depot
             self.simulator.metrics.drones_packets_to_depot.add((pck, cur_step))
@@ -259,7 +260,6 @@ class Drone(Entity):
     def update_packets(self, cur_step):
         """
         Removes the expired packets from the buffer
-
         @param cur_step: Integer representing the current time step
         @return:
         """
@@ -276,15 +276,16 @@ class Drone(Entity):
 
                 to_remove_packets += 1
 
-                if self.simulator.routing_algorithm.name not in "GEO" "RND":
+                if self.simulator.routing_algorithm.name not in "GEO" "RND" "GEOS":
 
                     feedback = -1
-                    drone = self
+                    current_drone = self
 
-                    self.simulator.drones[0].routing_algorithm.feedback(drone,
-                                                                        pck.event_ref.identifier,
-                                                                        self.simulator.event_duration,
-                                                                        feedback)
+                    for drone in self.simulator.drones:
+                        drone.routing_algorithm.feedback(current_drone,
+                                                         pck.event_ref.identifier,
+                                                         self.simulator.event_duration,
+                                                         feedback)
         self.__buffer = tmp_buffer
 
         if self.buffer_length() == 0:
@@ -293,7 +294,6 @@ class Drone(Entity):
     def packet_is_expiring(self, cur_step):
         """ return true if exist a packet that is expiring and must be returned to the depot as soon as possible
             -> start to move manually to the depot.
-
             This method is optional, there is flag src.utilities.config.ROUTING_IF_EXPIRING
         """
         time_to_depot = self.distance_from_depot / self.speed
@@ -351,8 +351,8 @@ class Drone(Entity):
         self.routing_algorithm.routing(depot, drones, cur_step)
 
     def move(self, time):
-        """ Move the drone to the next point if self.move_routing is false, else it moves towards the depot. 
-        
+        """ Move the drone to the next point if self.move_routing is false, else it moves towards the depot.
+
             time -> time_step_duration (how much time between two simulation frame)
         """
         if self.move_routing or self.come_back_to_mission:
