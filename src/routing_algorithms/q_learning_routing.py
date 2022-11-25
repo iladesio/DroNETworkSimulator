@@ -1,9 +1,7 @@
-from src.routing_algorithms.BASE_routing import BASE_routing
-from src.utilities import utilities as util
-
 import numpy as np
 
-from src.routing_algorithms import georouting as geo
+from src.routing_algorithms.BASE_routing import BASE_routing
+from src.utilities import utilities as util
 
 
 class QLearningRouting(BASE_routing):
@@ -23,7 +21,6 @@ class QLearningRouting(BASE_routing):
         cell_m  |  drone_1  |  drone_2  | ... |  drone_n  |
         """
 
-
         # Learning Rate
         self.alpha = 0.6  # ToModify
 
@@ -36,6 +33,8 @@ class QLearningRouting(BASE_routing):
         self._rng = np.random.default_rng()
 
     def feedback(self, drone, id_event, delay, outcome):
+
+        print("Curr drone", self.drone.identifier, "Feedback: ", drone, id_event, delay, outcome)
         """
         Feedback returned when the packet arrives at the depot or
         Expire. This function have to be implemented in RL-based protocols ONLY
@@ -56,20 +55,17 @@ class QLearningRouting(BASE_routing):
         if id_event in self.taken_actions:
             # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
             # TIPS: implement here the q-table updating process
-
             # Drone id and Taken actions
             """
             if self.simulator.cur_step < 4000:
                 print(
                     f"\nIdentifier: {self.drone.identifier}, Taken Actions: {self.taken_actions}, Time Step: {self.simulator.cur_step}")
-
-                # feedback from the environment
-                print("Feedback: ", drone, id_event, delay, outcome)
             """
+            # feedback from the environment
+            # print("Feedback: ", drone, id_event, delay, outcome)
+
             # TODO: write your code here
-
             # state, action = self.taken_actions[id_event]
-
             state, action, next_state = self.taken_actions[id_event]
 
             if action is None:
@@ -84,13 +80,10 @@ class QLearningRouting(BASE_routing):
             # do something or train the model (?)
 
             # ToDo: Reward function
-            # reward = 0
-
             if outcome == 1:
-                reward = 2000/(delay/50+1)-44
+                reward = 2000 / (delay / 50 + 1) - 44
             else:
                 reward = -70
-
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             q_old_value = self.q_table[state][action]
@@ -99,11 +92,10 @@ class QLearningRouting(BASE_routing):
             # update the Q-value for the previous state and action pair
             new_q_value = q_old_value + (self.alpha * temporal_difference)
             self.q_table[state][action] = new_q_value
-
-            print("\nQ_table: ")
-
-            for row in self.q_table:
-                print(row, ": ", self.q_table[row])
+            """
+            if self.simulator.cur_step < 7000:
+                print("Q table: ", self.q_table)
+            """
 
     def relay_selection(self, opt_neighbors: list, packet):
         """
@@ -112,20 +104,16 @@ class QLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
-        # TODO: Implement your code HERE
 
         # Only if you need!
-        cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
+        cell_index = util.TraversedCells.coord_to_cell(size_cell=150,
                                                        width_area=self.simulator.env_width,
                                                        x_pos=self.drone.coords[0],  # e.g. 1500
                                                        y_pos=self.drone.coords[1])[0]  # e.g. 500
-        # print(cell_index)
         state, action = cell_index, None
 
-        # print(self.drone.identifier)
-
         if cell_index not in self.q_table:
-            self.q_table[cell_index] = [0 for i in range(self.simulator.n_drones)]# + 1)]
+            self.q_table[cell_index] = [0 for i in range(self.simulator.n_drones)]
 
         neighbors = [n[1] for n in opt_neighbors]
 
@@ -138,33 +126,32 @@ class QLearningRouting(BASE_routing):
             should_explore = False
 
         if not should_explore:
-            # Exploit #
-            # chose the best action
-            if len(neighbors) == 0:
-                return None
-            else:
-                max_score = float('-inf')
-                for n in neighbors:
-                    if self.q_table[cell_index][n.identifier] > max_score:
-                        action = n
-                        max_score = self.q_table[cell_index][n.identifier]
+            # Exploit - choose the best action
+
+            # current state
+            max_score = self.q_table[cell_index][self.drone.identifier]
+            for n in neighbors:
+                if self.q_table[cell_index][n.identifier] > max_score:
+                    action = n
+                    max_score = self.q_table[cell_index][n.identifier]
+
         else:
             # Explore #
             # chose a random action
             if len(neighbors) == 0:
                 action = None
             else:
-                action = self.simulator.rnd_routing.choice(neighbors)
                 # action = geo.GeoRouting.relay_selection(self, opt_neighbors, packet)
+                action = self.simulator.rnd_routing.choice(neighbors)
 
         # keep the packet
         if action is None:
-            next = self.drone.next_target()
+            next = self.drone.coords
         # send the packet
         else:
-            next = action.next_target()
+            next = action.coords
 
-        next_cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
+        next_cell_index = util.TraversedCells.coord_to_cell(size_cell=150,
                                                             width_area=self.simulator.env_width,
                                                             x_pos=next[0],  # e.g. 1500
                                                             y_pos=next[1])[0]  # e.g. 500
@@ -191,7 +178,7 @@ class QLearningRouting(BASE_routing):
         self.taken_actions[packet.event_ref.identifier] = (state, action, next_state)
 
         if next_cell_index not in self.q_table:
-            self.q_table[next_cell_index] = [0 for i in range(self.simulator.n_drones)]# + 1)]
+            self.q_table[next_cell_index] = [0 for i in range(self.simulator.n_drones)]
 
         return action
 
