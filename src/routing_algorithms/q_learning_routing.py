@@ -33,8 +33,6 @@ class QLearningRouting(BASE_routing):
         self._rng = np.random.default_rng()
 
     def feedback(self, drone, id_event, delay, outcome):
-
-        print("Curr drone", self.drone.identifier, "Feedback: ", drone, id_event, delay, outcome)
         """
         Feedback returned when the packet arrives at the depot or
         Expire. This function have to be implemented in RL-based protocols ONLY
@@ -106,7 +104,7 @@ class QLearningRouting(BASE_routing):
         """
 
         # Only if you need!
-        cell_index = util.TraversedCells.coord_to_cell(size_cell=150,
+        cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                        width_area=self.simulator.env_width,
                                                        x_pos=self.drone.coords[0],  # e.g. 1500
                                                        y_pos=self.drone.coords[1])[0]  # e.g. 500
@@ -151,7 +149,7 @@ class QLearningRouting(BASE_routing):
         else:
             next = action.coords
 
-        next_cell_index = util.TraversedCells.coord_to_cell(size_cell=150,
+        next_cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                             width_area=self.simulator.env_width,
                                                             x_pos=next[0],  # e.g. 1500
                                                             y_pos=next[1])[0]  # e.g. 500
