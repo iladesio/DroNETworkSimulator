@@ -300,6 +300,22 @@ class Drone(Entity):
         event_time_to_dead = (self.tightest_event_deadline - cur_step) * self.simulator.time_step_duration
         return event_time_to_dead - 5 < time_to_depot <= event_time_to_dead  # 5 seconds of tolerance
 
+    def are_packets_expiring_critical(self):
+        """ return true if the number of expiring packet is over threshold PACKETS_EXPIRING_THRESHOLD
+            exist a packet that is expiring and must be returned to the depot as soon as possible
+        """
+        if len(self.all_packets()):
+            return False
+
+        count = 0
+        for pkt in self.all_packets():
+            if self.packet_is_expiring(pkt):
+                count += 1
+
+        percentage_expiring_pkts = count / len(self.all_packets())
+
+        return percentage_expiring_pkts > config.PACKETS_EXPIRING_THRESHOLD  # 5 seconds of tolerance
+
     def next_move_to_mission_point(self):
         """ get the next future position of the drones, according the mission """
         current_waypoint = self.current_waypoint
