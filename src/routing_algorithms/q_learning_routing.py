@@ -1,7 +1,10 @@
 import numpy as np
+import random
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.utilities import utilities as util
+
+from src.routing_algorithms.georouting import GeoRouting
 
 
 class QLearningRouting(BASE_routing):
@@ -27,10 +30,10 @@ class QLearningRouting(BASE_routing):
         # Discount Factor
         self.gamma = 0.8  # ToModify
 
-        # epsilon
+        # Epsilon
         self.epsilon = 0.9  # ToModify
 
-        self._rng = np.random.default_rng()
+        random.seed(self.simulator.seed)
 
     def feedback(self, drone, id_event, delay, outcome):
         """
@@ -79,9 +82,10 @@ class QLearningRouting(BASE_routing):
 
             # ToDo: Reward function
             if outcome == 1:
-                reward = 2000 / (delay / 50 + 1) - 44
+                # reward = 2000 / (delay / 50 + 1) - 44
+                reward = - (delay - 2000) / 20
             else:
-                reward = -70
+                reward = -50
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             q_old_value = self.q_table[state][action]
@@ -90,10 +94,6 @@ class QLearningRouting(BASE_routing):
             # update the Q-value for the previous state and action pair
             new_q_value = q_old_value + (self.alpha * temporal_difference)
             self.q_table[state][action] = new_q_value
-            """
-            if self.simulator.cur_step < 7000:
-                print("Q table: ", self.q_table)
-            """
 
     def relay_selection(self, opt_neighbors: list, packet):
         """
@@ -102,6 +102,13 @@ class QLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
+
+        # MAYBE USELESS
+        """
+        tot_cells = (self.simulator.env_width / self.simulator.prob_size_cell) ** 2
+        for i in range(int(tot_cells)):
+            if i not in self.q_table:
+                self.q_table[i] = [0 for i in range(self.simulator.n_drones)]"""
 
         # Only if you need!
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
@@ -117,7 +124,12 @@ class QLearningRouting(BASE_routing):
 
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
+
+        # use this to have always a different simulation
         p = np.random.random()
+        # use this to have always the same simulation
+        p = random.uniform(0, 1)
+
         if p > self.epsilon:
             should_explore = True
         else:
@@ -128,19 +140,20 @@ class QLearningRouting(BASE_routing):
 
             # current state
             max_score = self.q_table[cell_index][self.drone.identifier]
+            best_distance_to_depot = util.euclidean_distance(self.drone.next_target(), self.drone.depot.coords)
             for n in neighbors:
-                if self.q_table[cell_index][n.identifier] > max_score:
+                distance_to_depot = util.euclidean_distance(n.next_target(), self.drone.depot.coords)
+                if self.q_table[cell_index][n.identifier] > max_score or (self.q_table[cell_index][n.identifier] == max_score and best_distance_to_depot > distance_to_depot):
                     action = n
                     max_score = self.q_table[cell_index][n.identifier]
+                    best_distance_to_depot = distance_to_depot
 
         else:
             # Explore #
-            # chose a random action
-            if len(neighbors) == 0:
-                action = None
-            else:
-                # action = geo.GeoRouting.relay_selection(self, opt_neighbors, packet)
-                action = self.simulator.rnd_routing.choice(neighbors)
+            # choose a random action
+            neighbors.append(None)
+            action = self.simulator.rnd_routing.choice(neighbors)
+            # action = GeoRouting.relay_selection(self, opt_neighbors, packet)
 
         # keep the packet
         if action is None:
@@ -189,7 +202,42 @@ class QLearningRouting(BASE_routing):
         - ...
         
         - Utility reward function:
-            - delay
+            - delay!!!
             - buffer size
-            - energia rimanente
+            - residual energy
+        """
+
+        """
+        To ask:
+            - there are only 50 file jason for missions... what happens if there are more than 50 drones in the simulation?
+            - an high number of states can compromise the learning capabilities or the QL algorithm. What if there are few states but a lot of actions? 
+            - 
+        """
+
+        """
+        Observations:
+            - Exploration:
+                - Georouting: it works better with few drones           (50 drones: ratio = 77%)
+                - Random routing: it works better with more drones      (50 drones: ratio = 88%)
+                - other options?
+                
+            - Performance:
+                - Performance varies considerably depending on the number of times the drones enter the communication range of the depot.
+                  With an high number of drones we have a better performance.
+                  By having more drones, there is a higher probability that one of them, following its mission,
+                  will enter the communication range of the depot. 
+                  -
+                  There is a possibility that, for a period of time longer than 2000 seconds, no drone enters the communication range 
+                  of the depot. Packages not delivered before that time will definitely be lost.
+                  
+                  => 
+            
+            
+            - Buffer_size:
+                - the buffer is never getting full (i checked but i'm not sure)
+            - Residual energy:
+                - infinite energy
+                
+                 
+                
         """
