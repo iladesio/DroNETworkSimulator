@@ -13,28 +13,8 @@ class QLearningRoutingDirection(BASE_routing):
 
     def __init__(self, drone, simulator):
         BASE_routing.__init__(self, drone=drone, simulator=simulator)
-        self.taken_actions = {}  # id event : (old_state, old_action) #todo controllare che waypoint_history non sia un'info duplicata
+        self.taken_actions = {}
 
-        # self.q_table = {(direction, cell): [0, 0] for direction in range(1, 5) for cell in range(4)}
-        """
-        self.q_table = {
-            (1, 0): [0, 0],
-            (2, 0): [-optimal_init_value, optimal_init_value],
-            (3, 0): [-optimal_init_value, -optimal_init_value],
-            (4, 0): [optimal_init_value, 0],
-            (1, 1): [-optimal_init_value, optimal_init_value],
-            (2, 1): [optimal_init_value, 0],
-            (3, 1): [optimal_init_value, -optimal_init_value],
-            (4, 1): [0, -optimal_init_value],
-            (1, 2): [-optimal_init_value, optimal_init_value],
-            (2, 2): [-optimal_init_value, optimal_init_value],
-            (3, 2): [-optimal_init_value, 0],
-            (4, 2): [optimal_init_value, -optimal_init_value],
-            (1, 3): [-optimal_init_value, optimal_init_value],
-            (2, 3): [-optimal_init_value, optimal_init_value],
-            (3, 3): [optimal_init_value, -optimal_init_value],
-            (4, 3): [0, 0],
-        }"""
         """     Representation of the states                        Optimistic value for 
                 (direction, cell_index)                             each state
         +------------------+------------------+                 +----------+----------+             
@@ -96,7 +76,7 @@ class QLearningRoutingDirection(BASE_routing):
         #   1 if the packets has been delivered to the depot
 
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple
-        # feedback for the same packet!!
+        # feedback for the same packet!! # todo gestire questo caso (?)
 
         if id_event in self.taken_actions:
             # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
@@ -141,8 +121,7 @@ class QLearningRoutingDirection(BASE_routing):
             else:
                 reward = -20
 
-            #gamma = min(self.gamma, self.simulator.cur_step / self.simulator.time_step_duration, 0.5)
-            gamma = self.simulator.cur_step / self.simulator.time_step_duration
+            gamma = self.simulator.cur_step / self.simulator.len_simulation
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             old_q_value = self.q_table[old_state][old_action]
@@ -164,7 +143,6 @@ class QLearningRoutingDirection(BASE_routing):
         """
 
         neighbors = [n[1] for n in opt_neighbors]
-        """        """
 
         # event already present in taken_action -> action already decided
         # Todo: perché dovrei riprendere la stessa scelta se sto in uno stato diverso?
@@ -177,9 +155,6 @@ class QLearningRoutingDirection(BASE_routing):
             else:
                 return next_drone
 
-        #if self.simulator.cur_step < 1000:
-        #    return None
-
         direction = util.map_angle_to_state(util.get_angle_degree(self.drone.coords, self.drone.next_target()))
 
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
@@ -191,7 +166,6 @@ class QLearningRoutingDirection(BASE_routing):
 
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
-
         p = random.random()
 
         if p > self.epsilon:
@@ -232,18 +206,15 @@ class QLearningRoutingDirection(BASE_routing):
             if not is_some_neighbor_going_to_depot:
                 next_drone = GeoRouting.relay_selection(self, opt_neighbors, packet)
 
+        # next_drone could be None after geo routing selection
         if next_drone is None:
             action = 0
             next_drone = self.drone
 
         current_waypoint = self.drone.current_waypoint
 
-        # Store your current action --- you can add some stuff if needed to take a reward later
+        # Store current action
         self.taken_actions[packet.event_ref.identifier] = (state, action, next_drone, current_waypoint)
-
-        if state not in self.q_table:
-            print("SIUUUUUM")
-            self.q_table[state] = [0, 0]
 
         # action = 0 => self
         # action = 1 => next_drone neighbour
