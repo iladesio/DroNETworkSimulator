@@ -1,5 +1,6 @@
 
 from src.routing_algorithms.georouting import GeoRouting
+from src.routing_algorithms.q_learning_direction import QLearningRoutingDirection
 from src.routing_algorithms.q_learning_routing import QLearningRouting
 from src.routing_algorithms.q_learning_routing_tuple import QLearningRoutingTuple
 from src.routing_algorithms.random_routing import RandomRouting
@@ -41,7 +42,7 @@ DEBUG = False                         # bool: whether to print debug strings or 
 EXPERIMENTS_DIR = "data/evaluation_tests/"  # output data : the results of the simulation
 
 # drawaing
-PLOT_SIM = False      # bool: whether to plot or not the simulation.
+PLOT_SIM = True  # bool: whether to plot or not the simulation.
 WAIT_SIM_STEP = 0 #.1     # float: seconds, pauses the rendering for 'DELAY_PLOT' seconds.
 SKIP_SIM_STEP = 5      # int: steps, plot the simulation every 'RENDERING_STEP' steps. At least 1.
 DRAW_SIZE = 600       # int: size of the drawing window.
@@ -58,7 +59,7 @@ SIM_DURATION = 15000    # int: steps of simulation. # ***
 TS_DURATION = 0.150     # float: seconds duration of a step in seconds.
 SEED = 20               # int: seed of this simulation.
 
-N_DRONES = 50           # int: number of drones. # ***
+N_DRONES = 5        # int: number of drones. # ***
 ENV_WIDTH = 1500        # float: meters, width of environment.
 ENV_HEIGHT = 1500       # float: meters, height of environment.
 
@@ -87,6 +88,7 @@ class RoutingAlgorithm(Enum):
     RND = RandomRouting
     QL = QLearningRouting
     NEW_QL = QLearningRoutingTuple
+    DIR_QL = QLearningRoutingDirection
 
     @staticmethod
     def keylist():
@@ -102,7 +104,7 @@ class ChannelError(Enum):
         return list(map(lambda c: c.name, ChannelError))
 
 
-ROUTING_ALGORITHM = RoutingAlgorithm.QL
+ROUTING_ALGORITHM = RoutingAlgorithm.DIR_QL
 
 CHANNEL_ERROR_TYPE = ChannelError.GAUSSIAN
 
@@ -122,7 +124,7 @@ ROOT_EVALUATION_DATA = "data/evaluation_tests/"
 NN_MODEL_PATH = "data/nnmodels/"
 
 # --------------- new cell probabilities -------------- #
-CELL_PROB_SIZE_R = 1.875  # the percentage of cell size with respect to drone com range
+CELL_PROB_SIZE_R = 3.75  # the percentage of cell size with respect to drone com range
 ENABLE_PROBABILITIES = False
 
 PACKETS_EXPIRING_THRESHOLD = 0.1

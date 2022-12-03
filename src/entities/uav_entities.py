@@ -243,6 +243,8 @@ class Drone(Entity):
         # dynamic parameters
         self.tightest_event_deadline = None  # used later to check if there is an event that is about to expire
         self.current_waypoint = 0
+        self.state_history = []
+        self.waypoint_history = []
 
         self.__buffer = []  # contains the packets
 
@@ -301,7 +303,7 @@ class Drone(Entity):
         return event_time_to_dead - 5 < time_to_depot <= event_time_to_dead  # 5 seconds of tolerance
 
     def are_packets_expiring_critical(self):
-        """ return true if the number of expiring packet is over threshold PACKETS_EXPIRING_THRESHOLD
+        """ return true if the number of expiring packet is over threshold PACKETS_EXPIRING_THRESHOL    D
             exist a packet that is expiring and must be returned to the depot as soon as possible
         """
         if len(self.all_packets()):
@@ -462,10 +464,23 @@ class Drone(Entity):
             self.coords = (((1 - t) * p0[0] + t * p1[0]), ((1 - t) * p0[1] + t * p1[1]))
 
     def __update_position(self, p1):
+
         if self.come_back_to_mission:
             self.come_back_to_mission = False
             self.coords = p1
         else:
+            # add current waypoint to the history before update it
+
+            self.waypoint_history.append(self.path[self.current_waypoint])
+
+            p1 = self.path[self.current_waypoint]
+            p2 = self.next_target()
+
+            # todo controllare che salvi i valori corretti
+            state = utilities.map_angle_to_state(utilities.get_angle_degree(p1, p2))
+
+            self.state_history.append(state)
+
             self.current_waypoint += 1
             self.coords = self.path[self.current_waypoint]
 

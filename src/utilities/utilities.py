@@ -1,4 +1,5 @@
 """ To clean. """
+import math
 
 from src.utilities import config
 
@@ -362,3 +363,63 @@ class TraversedCells:
 
         x_cells = np.ceil(width_area / size_cell)  # numero di celle su X
         return x_cell_coords + (x_cells * y_cell_coords)
+
+
+def map_angle_to_state(angle):
+    angle = math.floor(angle)
+
+    """
+    if 360 >= angle > 315:
+        return 8
+    elif 315 >= angle > 270:
+        return 7
+    elif 270 >= angle > 225:
+        return 6
+    elif 225 >= angle > 180:
+        return 5
+    elif 180 >= angle > 135:
+        return 4
+    elif 135 >= angle > 90:
+        return 3
+    elif 90 >= angle > 45:
+        return 2
+    else:
+        return 1
+    """
+    if 360 >= angle > 270:
+        return 4
+    elif 270 >= angle > 180:
+        return 3
+    elif 180 >= angle > 90:
+        return 2
+    else:
+        return 1
+
+
+def get_angle_degree(point_1, point_2):
+    # overlapping points
+    if point_1 == point_2:
+        return 0
+
+    # same x coordinate
+    if point_1[0] == point_2[0]:
+        return 90 if point_1[1] < point_2[1] else 270
+
+    # same y coordinate
+    if point_1[1] == point_2[1]:
+        return 0 if point_1[0] < point_2[0] else 180
+
+    radiants = math.atan2((point_2[1] - point_1[1]), (point_2[0] - point_1[0]))
+    angle = math.degrees(radiants)
+
+    if angle < 0:
+        angle = 360 + angle
+
+    return angle
+
+def distance_to_line(point, p1, p2):
+    x_diff = p2[0] - p1[0]
+    y_diff = p2[1] - p1[1]
+    num = abs(y_diff * point[0] - x_diff * point[1] + p2[0] * p1[1] - p2[1] * p1[0])
+    den = math.sqrt(y_diff ** 2 + x_diff ** 2)
+    return num / den
