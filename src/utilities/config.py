@@ -1,11 +1,8 @@
+from enum import Enum
 
 from src.routing_algorithms.georouting import GeoRouting
 from src.routing_algorithms.q_learning_direction import QLearningRoutingDirection
-from src.routing_algorithms.q_learning_routing import QLearningRouting
-from src.routing_algorithms.q_learning_routing_tuple import QLearningRoutingTuple
 from src.routing_algorithms.random_routing import RandomRouting
-from enum import Enum
-
 
 """
 This file contains all the constants and parameters of the simulator.
@@ -51,7 +48,6 @@ IS_SHOW_NEXT_TARGET_VEC = True  # bool : whether show the direction and next tar
 SAVE_PLOT = False  # bool: whether to save the plots of the simulation or not.
 SAVE_PLOT_DIR = "data/plots/"
 
-
 # add constants here...
 
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
@@ -86,8 +82,6 @@ DEPOT_COO = (750, 0)             # (float, float): coordinates of the depot.
 class RoutingAlgorithm(Enum):
     GEO = GeoRouting
     RND = RandomRouting
-    QL = QLearningRouting
-    NEW_QL = QLearningRoutingTuple
     DIR_QL = QLearningRoutingDirection
 
     @staticmethod

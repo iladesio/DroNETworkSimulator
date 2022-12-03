@@ -1,12 +1,14 @@
+from collections import defaultdict
+
 from src.drawing import stddraw
 from src.entities.uav_entities import Environment
 from src.utilities import config, utilities
-from collections import defaultdict
 
-#printer the environment 
+
+# printer the environment
 class PathPlanningDrawer():
 
-    #init the drawer for the path planning 
+    # init the drawer for the path planning
     def __init__(self, env : Environment, simulator,
                  borders=False, padding=25):
         """ init the path plannind drawer """
@@ -44,6 +46,8 @@ class PathPlanningDrawer():
         self.__reset_pen()
 
     def __grid_plot(self):
+        stddraw.line(750, 0, 750, 1500)  # vertical
+        stddraw.line(0, 750, 1500, 750)  # horizontal
         for i in range(0, self.width, self.simulator.prob_size_cell):
             stddraw.setPenColor(c=stddraw.GRAY)
             stddraw.setPenRadius(0.0025)
@@ -70,10 +74,26 @@ class PathPlanningDrawer():
         coords = drone.coords
         if drone.buffer_length() > 0:  # change color when find a packet
             stddraw.setPenColor(c=stddraw.GREEN)
-        else:     
+        else:
             stddraw.setPenColor(c=stddraw.BLACK)
         stddraw.setPenRadius(0.0055)
-        stddraw.point(coords[0], coords[1])
+
+        x_d = coords[0]
+        y_d = coords[1]
+
+        stddraw.point(x_d, y_d)
+        """
+        stddraw.setPenColor(c=stddraw.BLACK)
+        stddraw.setPenRadius(0.0)
+
+        stddraw.line(x_d, y_d - 200, x_d, y_d + 200)  # vertical
+        stddraw.line(x_d - 200, y_d, x_d + 200, y_d)  # horizontal
+
+        stddraw.text(x_d + 130, y_d + 40, "dir 1")
+        stddraw.text(x_d - 130, y_d + 40, "dir 2")
+        stddraw.text(x_d - 130, y_d - 40, "dir 3")
+        stddraw.text(x_d + 130, y_d - 40, "dir 4")
+        """
 
         self.__draw_drone_info(drone, cur_step)
         self.__draw_communication_range(drone)
@@ -83,9 +103,19 @@ class PathPlanningDrawer():
         if config.IS_SHOW_NEXT_TARGET_VEC:
             self.__draw_next_target(drone.coords, drone.next_target())
 
-    def update(self, rate=1, 
-                save=False, show=True,
-                filename=None):
+    def update(self, rate=1,
+               save=False, show=True,
+               filename=None):
+
+        stddraw.line(750, 0, 750, 1500)  # vertical
+        stddraw.line(0, 750, 1500, 750)  # horizontal
+
+        # show cell line text
+        stddraw.text(50, 20, "cell 0")
+        stddraw.text(1450, 20, "cell 1")
+        stddraw.text(50, 1450, "cell 2")
+        stddraw.text(1450, 1450, "cell 3")
+
         """ update the draw """
         if self.borders:
             self.__borders_plot()

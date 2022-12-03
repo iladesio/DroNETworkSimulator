@@ -73,7 +73,7 @@ class QLearningRoutingDirection(BASE_routing):
         """
         # outcome can be:
         #   -1 if the packet/event expired;
-        #   1 if the packets has been delivered to the depot
+        #    1 if the packets has been delivered to the depot
 
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple
         # feedback for the same packet!! # todo gestire questo caso (?)
@@ -105,8 +105,8 @@ class QLearningRoutingDirection(BASE_routing):
 
                 current_cell = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                                  width_area=self.simulator.env_width,
-                                                                 x_pos=p1[0],  # e.g. 1500
-                                                                 y_pos=p1[1])[0]  # e.g. 500
+                                                                 x_pos=p1[0],
+                                                                 y_pos=p1[1])[0]
 
                 current_direction = util.map_angle_to_state(util.get_angle_degree(p1, p2))
                 next_state = (current_direction, int(current_cell))

@@ -1,14 +1,14 @@
-from src.drawing import pp_draw
-from src.entities.uav_entities import *
-from src.simulation.metrics import Metrics
-from src.utilities import config, utilities
-from src.routing_algorithms.net_routing import MediumDispatcher
-from collections import defaultdict
-from tqdm import tqdm
-
-import numpy as np
 import math
 import time
+from collections import defaultdict
+
+import numpy as np
+
+from src.drawing import pp_draw
+from src.entities.uav_entities import *
+from src.routing_algorithms.net_routing import MediumDispatcher
+from src.simulation.metrics import Metrics
+from src.utilities import config, utilities
 
 """
 This file contains the Simulation class. It allows to explicit all the relevant parameters of the simulation,
@@ -236,7 +236,7 @@ class Simulator:
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
-        self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
+        # self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
 
     def print_metrics(self, plot_id="final"):
         """ add signature """

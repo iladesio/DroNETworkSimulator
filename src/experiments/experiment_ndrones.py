@@ -1,8 +1,11 @@
-from src.utilities.experiments_config import *
-from src.experiments.parser.parser import command_line_parser
-from src.utilities import config
-from src.simulation.simulator import Simulator
+import json
 import os
+
+from src.experiments.parser.parser import command_line_parser
+from src.simulation.simulator import Simulator
+from src.utilities import config
+from src.utilities import utilities
+from src.utilities.experiments_config import *
 
 
 def sim_setup(n_drones, seed, algorithm):
@@ -58,16 +61,30 @@ def launch_experiments(n_drones, in_seed, out_seed, algorithm):
     @return:
     """
 
-    for seed in range(in_seed, out_seed):
+    simulation_results = {}
 
+    for seed in range(in_seed, out_seed + 1):
         print(f"Running {algorithm} with {n_drones} drones seed {seed}")
 
         simulation = sim_setup(n_drones, seed, algorithm)
 
         simulation.run()
 
+        simulation_results[seed] = simulation.metrics.get_metrics()
+
         simulation.close()
 
+    # to save file, pls create directory before
+    simulation_name = "experiment_simulation-" + utilities.date() + "_"
+    filename = (config.ROOT_EVALUATION_DATA + simulation_name + ".json")
+
+    js = json.dumps(simulation_results)
+    f = open(filename, "w")
+    f.write(js)
+    f.close()
+
+    for seed in simulation_results.keys():
+        print(seed, " : ", simulation_results[seed]["packet_delivery_ratio"])
 
 if __name__ == "__main__":
 
