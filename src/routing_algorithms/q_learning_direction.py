@@ -53,7 +53,7 @@ class QLearningRoutingDirection(BASE_routing):
         self.alpha = 0.6  # ToModify
 
         # Discount Factor
-        self.gamma = 0.8  # ToModify
+        self.gamma = 0.0  # ToModify
 
         # Epsilon
         self.epsilon = 0.95  # ToModify
@@ -125,7 +125,7 @@ class QLearningRoutingDirection(BASE_routing):
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             old_q_value = self.q_table[old_state][old_action]
-            temporal_difference = reward + gamma * (max(self.q_table[next_state])) - old_q_value
+            temporal_difference = reward + self.gamma * (max(self.q_table[next_state])) - old_q_value
 
             # update the Q-value for the previous state and action pair
             new_q_value = old_q_value + (self.alpha * temporal_difference)
