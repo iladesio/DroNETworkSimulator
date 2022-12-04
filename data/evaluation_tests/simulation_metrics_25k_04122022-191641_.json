@@ -1,0 +1,239 @@
+{
+  "RND": {
+    "5": {
+      "packet_delivery_ratio": 0.24935064935064935,
+      "seed": 0,
+      "n_drones": 5,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 96,
+      "number_of_packets_to_depot": 96,
+      "mean_number_of_relays": 1.2360913657473225,
+      "packet_mean_delivery_time": 118.98906249999999,
+      "score": 2449.748051948052
+    },
+    "10": {
+      "packet_delivery_ratio": 0.23376623376623376,
+      "seed": 0,
+      "n_drones": 10,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 89,
+      "number_of_packets_to_depot": 90,
+      "mean_number_of_relays": 1.4929973447180716,
+      "packet_mean_delivery_time": 111.75,
+      "score": 2477.0207792207793
+    },
+    "15": {
+      "packet_delivery_ratio": 0.2987012987012987,
+      "seed": 0,
+      "n_drones": 15,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 115,
+      "number_of_packets_to_depot": 115,
+      "mean_number_of_relays": 1.83420106607165,
+      "packet_mean_delivery_time": 116.77565217391303,
+      "score": 2336.4363636363637
+    },
+    "20": {
+      "packet_delivery_ratio": 0.3090909090909091,
+      "seed": 0,
+      "n_drones": 20,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 109,
+      "number_of_packets_to_depot": 119,
+      "mean_number_of_relays": 2.3121172826165264,
+      "packet_mean_delivery_time": 123.40840336134453,
+      "score": 2372.7272727272725
+    },
+    "25": {
+      "packet_delivery_ratio": 0.36103896103896105,
+      "seed": 0,
+      "n_drones": 25,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 131,
+      "number_of_packets_to_depot": 139,
+      "mean_number_of_relays": 2.7285679703980357,
+      "packet_mean_delivery_time": 120.73489208633093,
+      "score": 2249.4233766233765
+    },
+    "40": {
+      "packet_delivery_ratio": 0.2727272727272727,
+      "seed": 0,
+      "n_drones": 40,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 102,
+      "number_of_packets_to_depot": 105,
+      "mean_number_of_relays": 4.107554057848919,
+      "packet_mean_delivery_time": 124.89285714285714,
+      "score": 2420.4467532467534
+    },
+    "50": {
+      "packet_delivery_ratio": 0.35844155844155845,
+      "seed": 0,
+      "n_drones": 50,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 132,
+      "number_of_packets_to_depot": 138,
+      "mean_number_of_relays": 5.053316732596807,
+      "packet_mean_delivery_time": 135.69347826086957,
+      "score": 2272.116883116883
+    }
+  },
+  "GEO": {
+    "5": {
+      "packet_delivery_ratio": 0.43636363636363634,
+      "seed": 0,
+      "n_drones": 5,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 168,
+      "number_of_packets_to_depot": 168,
+      "mean_number_of_relays": 1.2419904567143831,
+      "packet_mean_delivery_time": 150.60714285714286,
+      "score": 2129.038961038961
+    },
+    "10": {
+      "packet_delivery_ratio": 0.5792207792207792,
+      "seed": 0,
+      "n_drones": 10,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 223,
+      "number_of_packets_to_depot": 223,
+      "mean_number_of_relays": 1.522638448491999,
+      "packet_mean_delivery_time": 145.4213004484305,
+      "score": 1823.877922077922
+    },
+    "15": {
+      "packet_delivery_ratio": 0.6155844155844156,
+      "seed": 0,
+      "n_drones": 15,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 237,
+      "number_of_packets_to_depot": 237,
+      "mean_number_of_relays": 1.7281420765027322,
+      "packet_mean_delivery_time": 144.1493670886076,
+      "score": 1744.8207792207793
+    },
+    "20": {
+      "packet_delivery_ratio": 0.7714285714285715,
+      "seed": 0,
+      "n_drones": 20,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 297,
+      "number_of_packets_to_depot": 297,
+      "mean_number_of_relays": 2.032568685768132,
+      "packet_mean_delivery_time": 141.73282828282828,
+      "score": 1414.625974025974
+    },
+    "25": {
+      "packet_delivery_ratio": 0.787012987012987,
+      "seed": 0,
+      "n_drones": 25,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 301,
+      "number_of_packets_to_depot": 303,
+      "mean_number_of_relays": 2.388933038999264,
+      "packet_mean_delivery_time": 136.66831683168317,
+      "score": 1365.6831168831168
+    },
+    "40": {
+      "packet_delivery_ratio": 0.9168831168831169,
+      "seed": 0,
+      "n_drones": 40,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 352,
+      "number_of_packets_to_depot": 353,
+      "mean_number_of_relays": 3.36443956981385,
+      "packet_mean_delivery_time": 133.8254957507082,
+      "score": 1073.2311688311688
+    },
+    "50": {
+      "packet_delivery_ratio": 0.961038961038961,
+      "seed": 0,
+      "n_drones": 50,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 370,
+      "number_of_packets_to_depot": 370,
+      "mean_number_of_relays": 4.257156603319702,
+      "packet_mean_delivery_time": 115.53770270270269,
+      "score": 857.1246753246753
+    }
+  },
+  "DIR_QL": {
+    "5": {
+      "packet_delivery_ratio": 0.43376623376623374,
+      "seed": 0,
+      "n_drones": 5,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 167,
+      "number_of_packets_to_depot": 167,
+      "mean_number_of_relays": 1.2649333125746016,
+      "packet_mean_delivery_time": 149.9191616766467,
+      "score": 2132.2337662337663
+    },
+    "10": {
+      "packet_delivery_ratio": 0.5636363636363636,
+      "seed": 0,
+      "n_drones": 10,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 217,
+      "number_of_packets_to_depot": 217,
+      "mean_number_of_relays": 1.5206890299184044,
+      "packet_mean_delivery_time": 145.3658986175115,
+      "score": 1855.3142857142857
+    },
+    "15": {
+      "packet_delivery_ratio": 0.6623376623376623,
+      "seed": 0,
+      "n_drones": 15,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 255,
+      "number_of_packets_to_depot": 255,
+      "mean_number_of_relays": 1.7243199481865286,
+      "packet_mean_delivery_time": 144.24117647058824,
+      "score": 1649.8961038961038
+    },
+    "20": {
+      "packet_delivery_ratio": 0.7948051948051948,
+      "seed": 0,
+      "n_drones": 20,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 305,
+      "number_of_packets_to_depot": 306,
+      "mean_number_of_relays": 2.07963972505333,
+      "packet_mean_delivery_time": 141.14362745098038,
+      "score": 1366.5844155844156
+    },
+    "25": {
+      "packet_delivery_ratio": 0.8233766233766234,
+      "seed": 0,
+      "n_drones": 25,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 316,
+      "number_of_packets_to_depot": 317,
+      "mean_number_of_relays": 2.3778012619277034,
+      "packet_mean_delivery_time": 135.49589905362777,
+      "score": 1278.3376623376623
+    },
+    "40": {
+      "packet_delivery_ratio": 0.9038961038961039,
+      "seed": 0,
+      "n_drones": 40,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 346,
+      "number_of_packets_to_depot": 348,
+      "mean_number_of_relays": 3.3774794388001936,
+      "packet_mean_delivery_time": 128.57370689655173,
+      "score": 1073.6415584415583
+    },
+    "50": {
+      "packet_delivery_ratio": 0.9662337662337662,
+      "seed": 0,
+      "n_drones": 50,
+      "number_of_detected_events": 385,
+      "number_of_events_to_depot": 367,
+      "number_of_packets_to_depot": 372,
+      "mean_number_of_relays": 4.313940296390839,
+      "packet_mean_delivery_time": 110.5508064516129,
+      "score": 832.0311688311689
+    }
+  }
+}
