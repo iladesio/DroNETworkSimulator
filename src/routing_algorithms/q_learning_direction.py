@@ -6,8 +6,7 @@ from src.routing_algorithms.BASE_routing import BASE_routing
 from src.routing_algorithms.georouting import GeoRouting
 from src.utilities import utilities as util
 
-optimal_init_value = 20
-
+optimistic_init_value = 10
 
 
 class QLearningRoutingDirection(BASE_routing):
@@ -29,35 +28,35 @@ class QLearningRoutingDirection(BASE_routing):
         +------------------+------------------+                 +----------+----------+
         """
         self.q_table = {
-            (1, 0): [0, optimal_init_value],                     # ?
-            (2, 0): [0, optimal_init_value],    # Move
-            (3, 0): [0, optimal_init_value],    # Move
-            (4, 0): [optimal_init_value, 0],    # Keep
+            (1, 0): [0, optimistic_init_value],  # Move
+            (2, 0): [0, optimistic_init_value],  # Move
+            (3, 0): [0, optimistic_init_value],  # Move
+            (4, 0): [optimistic_init_value, 0],  # Keep
 
-            (1, 1): [0, optimal_init_value],    # Move
-            (2, 1): [0, optimal_init_value],                     # ?
-            (3, 1): [optimal_init_value, 0],    # Keep
-            (4, 1): [0, optimal_init_value],    # Move
+            (1, 1): [0, optimistic_init_value],  # Move
+            (2, 1): [0, optimistic_init_value],  # Move
+            (3, 1): [optimistic_init_value, 0],  # Keep
+            (4, 1): [0, optimistic_init_value],  # Move
 
-            (1, 2): [0, optimal_init_value],    # Move
-            (2, 2): [0, optimal_init_value],    # Move
-            (3, 2): [0, optimal_init_value],                     # ?
-            (4, 2): [optimal_init_value, 0],    # Keep
+            (1, 2): [0, optimistic_init_value],  # Move
+            (2, 2): [0, optimistic_init_value],  # Move
+            (3, 2): [0, optimistic_init_value],  # Move
+            (4, 2): [optimistic_init_value, 0],  # Keep
 
-            (1, 3): [0, optimal_init_value],    # Move
-            (2, 3): [0, optimal_init_value],    # Move
-            (3, 3): [optimal_init_value, 0],    # Keep
-            (4, 3): [0, optimal_init_value],                     # ?
+            (1, 3): [0, optimistic_init_value],  # Move
+            (2, 3): [0, optimistic_init_value],  # Move
+            (3, 3): [optimistic_init_value, 0],  # Keep
+            (4, 3): [0, optimistic_init_value],  # Move
         }
 
         # Learning Rate
-        self.alpha = 0.6  # ToModify
+        self.alpha = 0.6
 
         # Discount Factor
         self.gamma = 0.0  # calculate at each timestep
 
         # Epsilon
-        self.epsilon = 0.95  # ToModify
+        self.epsilon = 0.9
 
         # use this to have always the same simulation
         random.seed(self.simulator.seed)
@@ -77,14 +76,14 @@ class QLearningRoutingDirection(BASE_routing):
         #    1 if the packets has been delivered to the depot
 
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple
-        # feedback for the same packet!! # todo gestire questo caso (?)
+        # feedback for the same packet!!
 
         if id_event in self.taken_actions:
             # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
             # TIPS: implement here the q-table updating process
             # Drone id and Taken actions
 
-            state, action, next_drone, current_waypoint = self.taken_actions[id_event]
+            state, action, current_waypoint = self.taken_actions[id_event]
 
             old_state = state
             old_action = action
@@ -118,7 +117,7 @@ class QLearningRoutingDirection(BASE_routing):
             # reward or update using the old state and the selected action at that time
             # do something or train the model (?)
             if outcome == 1:
-                reward = (2000 - delay) / 20
+                reward = (2000 - delay) / 50  # to a maximum of 40
             else:
                 reward = -20
 
@@ -137,7 +136,7 @@ class QLearningRoutingDirection(BASE_routing):
             old_q_value = self.q_table[old_state][old_action]
             temporal_difference = reward + self.gamma * (max(self.q_table[next_state])) - old_q_value
 
-            # update the Q-value for the previous state and action pair
+            # Bellman equation: update the Q-value for the previous state and action pair
             new_q_value = old_q_value + (self.alpha * temporal_difference)
             self.q_table[old_state][old_action] = new_q_value
 
@@ -155,17 +154,6 @@ class QLearningRoutingDirection(BASE_routing):
 
         neighbors = [n[1] for n in opt_neighbors]
 
-        # event already present in taken_action -> action already decided
-        # Todo: perché dovrei riprendere la stessa scelta se sto in uno stato diverso?
-        if packet.event_ref.identifier in self.taken_actions:
-            state, action, next_drone, current_waypoint = self.taken_actions[packet.event_ref.identifier]
-            # keep
-            if action == 0:
-                return None
-            # move
-            else:
-                return next_drone
-
         direction = util.map_angle_to_state(util.get_angle_degree(self.drone.coords, self.drone.next_target()))
 
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
@@ -177,56 +165,52 @@ class QLearningRoutingDirection(BASE_routing):
 
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
-        p = random.random()
+
+        p = random.uniform(0, 1)
 
         if p > self.epsilon:
             should_explore = True
         else:
             should_explore = False
 
-        if not should_explore:
-            # Exploit - choose the best action
-            if self.drone.current_waypoint == 0:
-                action = random.randint(0, 1)
-            else:
-                action = np.argmax(self.q_table[state])
+        next_drone = None
+
+        range = self.drone.depot.communication_range
+
+        if len(neighbors) == 0 or util.euclidean_distance(self.simulator.depot_coordinates,
+                                                          self.drone.next_target()) <= range:
+            action = 0  # keep
 
         else:
-            # Explore
-            # choose a random action
-            action = random.randint(0, 1)
-
-        if len(neighbors) == 0:
-            action = 0
-
-        # keep the packet
-        if action == 0:
-            next_drone = self.drone
-        # send the packet
-        else:
-            # next_drone = GeoRouting.relay_selection(self, opt_neighbors, packet)
-            # next_drone = self.simulator.rnd_routing.choice(neighbors)
-
-            next_drone = neighbors[0]
+            # if one of your neighbors goes to the depot, give him all the packets
             is_some_neighbor_going_to_depot = False
             for nb in neighbors:
-                if util.distance_to_line(self.simulator.depot_coordinates, nb.coords, nb.next_target()) <= 200:
+                if ((util.distance_to_line(self.simulator.depot_coordinates, nb.coords, nb.next_target()) <= range and
+                     (nb.coords[1] <= range or nb.next_target()[1] <= range))
+                        or util.euclidean_distance(self.simulator.depot_coordinates, nb.next_target()) <= range):
                     next_drone = nb
+                    action = 1
                     is_some_neighbor_going_to_depot = True
 
             if not is_some_neighbor_going_to_depot:
-                next_drone = GeoRouting.relay_selection(self, opt_neighbors, packet)
+                if not should_explore:
+                    # Exploit - choose the best action
+                    action = np.argmax(self.q_table[state])
 
-        # next_drone could be None after geo routing selection
-        if next_drone is None:
-            action = 0
-            next_drone = self.drone
+                else:
+                    # Explore
+                    # choose a random action
+                    action = random.randint(0, 1)
+
+                # Send the packet
+                if action == 1:
+                    next_drone = GeoRouting.relay_selection(self, opt_neighbors, packet)
+                    if next_drone is None:
+                        action = 0
 
         current_waypoint = self.drone.current_waypoint
 
-        # Store current action
-        self.taken_actions[packet.event_ref.identifier] = (state, action, next_drone, current_waypoint)
+        # Store your current action --- you can add some stuff if needed to take a reward later
+        self.taken_actions[packet.event_ref.identifier] = (state, action, current_waypoint)
 
-        # action = 0 => self
-        # action = 1 => next_drone neighbour
-        return None if action == 0 else next_drone
+        return next_drone
