@@ -50,13 +50,13 @@ class QLearningRoutingDirection(BASE_routing):
         }
 
         # Learning Rate
-        self.alpha = 0.6
+        self.alpha = 0.0  # calculate at each timestep
 
         # Discount Factor
         self.gamma = 0.0  # calculate at each timestep
 
         # Epsilon
-        self.epsilon = 0.9
+        self.epsilon = 0.95
 
         # use this to have always the same simulation
         random.seed(self.simulator.seed)
