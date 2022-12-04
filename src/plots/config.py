@@ -70,6 +70,15 @@ PLOT_DICT = {
         "label": "Algo n",
         "x_ticks_positions": np.array(np.linspace(0, 8, 5))
 
+    },
+
+    "seed": {
+        "hatch": "",
+        "markers": ".",
+        "linestyle": "-",
+        "color": 'blue',
+        "label": " QL",
+        "x_ticks_positions": [str(i) for i in range(0, 31)]
     }
 }
 

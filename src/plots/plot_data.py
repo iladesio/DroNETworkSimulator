@@ -33,8 +33,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.plots.config import PLOT_DICT, OTHER_SIZES, LABEL_SIZE, LEGEND_SIZE, MAP_METRIC_TO_TITLE, METRICS_OF_INTEREST, \
-    PLOTS_ALGORITMS, X_VALUES_N_DRONES
+from src.plots.config import PLOT_DICT, OTHER_SIZES, LABEL_SIZE, LEGEND_SIZE
 
 with open('src/plots/data.json') as f:
     data = json.load(f)
@@ -55,7 +54,8 @@ def plot(algorithm: list,
 
     fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(8.5, 6.5))
 
-    # get line in plot for each algorithm
+    """
+    # ------------------- get line in plot for each algorithm ------------------- 
     for alg in algorithm:
         axs.errorbar(x=np.array(PLOT_DICT[alg]["x_ticks_positions"]),
                      y=y_data[alg],
@@ -64,12 +64,28 @@ def plot(algorithm: list,
                      linestyle=PLOT_DICT[alg]["linestyle"],
                      color=PLOT_DICT[alg]["color"],
                      markersize=5)
-
+                     
     axs.set_ylabel(ylabel=MAP_METRIC_TO_TITLE[type], fontsize=LABEL_SIZE)
     axs.set_xlabel(xlabel="Number of Drones", fontsize=LABEL_SIZE)
     axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
+    """
 
-    plt.xticks(ticks=np.linspace(0, 50, 6))
+    # ------------------- get line in plot by seed -------------------
+
+    axs.errorbar(x=np.array(PLOT_DICT["seed"]["x_ticks_positions"]),
+                 y=y_data,
+                 label=PLOT_DICT["seed"]["label"],
+                 marker=PLOT_DICT["seed"]["markers"],
+                 linestyle=PLOT_DICT["seed"]["linestyle"],
+                 color=PLOT_DICT["seed"]["color"],
+                 markersize=5)
+
+    # seed
+    axs.set_ylabel(ylabel="Packet delivery ratio", fontsize=LABEL_SIZE)
+    axs.set_xlabel(xlabel="Seed", fontsize=LABEL_SIZE)
+    axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
+
+    plt.xticks(ticks=np.linspace(0, 30, 30))
 
     plt.legend(ncol=1,
                handletextpad=0.1,
@@ -93,17 +109,22 @@ if __name__ == "__main__":
 
     # packet_delivery_ratio
 
+    """
+    # metrics by algorithm
     for m in METRICS_OF_INTEREST:
 
         y_data = {}
-
         for alg in PLOTS_ALGORITMS:
-
             yvalue = []
-
             for ndrones in X_VALUES_N_DRONES:
                 yvalue.append(data[alg][str(ndrones)][m])
-
             y_data[alg] = yvalue
+        plot(algorithm=PLOTS_ALGORITMS, y_data_std=None, y_data=y_data, type=m) 
+    """
 
-        plot(algorithm=PLOTS_ALGORITMS, y_data_std=None, y_data=y_data, type=m)
+    # seed
+    yvalue = []
+    for i in range(0, 31):
+        yvalue.append(data[str(i)]["packet_delivery_ratio"])
+
+    plot(algorithm=["DIR_QL"], y_data_std=None, y_data=yvalue, type="seed-packet_delivery_ratio")
