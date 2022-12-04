@@ -27,16 +27,22 @@ The script plot_data.py can be run using python -m src.plots.plot_data
 
 """
 
+import json
+
 # ***EXAMPLE*** #
 import matplotlib.pyplot as plt
 import numpy as np
-from src.experiments.json_and_plot import ALL_SIZE
-from src.plots.config import PLOT_DICT, LABEL_SIZE, LEGEND_SIZE
+
+from src.plots.config import PLOT_DICT, OTHER_SIZES, LABEL_SIZE, LEGEND_SIZE, MAP_METRIC_TO_TITLE, METRICS_OF_INTEREST, \
+    PLOTS_ALGORITMS, X_VALUES_N_DRONES
+
+with open('src/plots/data.json') as f:
+    data = json.load(f)
 
 
 def plot(algorithm: list,
-         y_data: list,
-         y_data_std: list,
+         y_data: dict,
+         y_data_std: dict or None,
          type: str):
     """
     This method has the ONLY responsibility to plot data
@@ -47,39 +53,34 @@ def plot(algorithm: list,
     @return:
     """
 
-    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(8.5, 6.5))
+    fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(8.5, 6.5))
 
-    print(f"Algorithm: {algorithm}")
+    # get line in plot for each algorithm
+    for alg in algorithm:
+        axs.errorbar(x=np.array(PLOT_DICT[alg]["x_ticks_positions"]),
+                     y=y_data[alg],
+                     label=PLOT_DICT[alg]["label"],
+                     marker=PLOT_DICT[alg]["markers"],
+                     linestyle=PLOT_DICT[alg]["linestyle"],
+                     color=PLOT_DICT[alg]["color"],
+                     markersize=5)
 
-    print(f"y_data: {y_data}\ny_data_std: {y_data_std}")
+    axs.set_ylabel(ylabel=MAP_METRIC_TO_TITLE[type], fontsize=LABEL_SIZE)
+    axs.set_xlabel(xlabel="Number of Drones", fontsize=LABEL_SIZE)
+    axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
 
-    ax1.errorbar(x=np.array(PLOT_DICT[algorithm]["x_ticks_positions"]),
-                 y=y_data,
-                 yerr=y_data_std,
-                 label=PLOT_DICT[algorithm]["label"],
-                 marker=PLOT_DICT[algorithm]["markers"],
-                 linestyle=PLOT_DICT[algorithm]["linestyle"],
-                 color=PLOT_DICT[algorithm]["color"],
-                 markersize=8)
-
-    ax1.set_ylabel(ylabel="Metric 1", fontsize=LABEL_SIZE)
-    ax1.set_xlabel(xlabel="UAVs", fontsize=LABEL_SIZE)
-    ax1.tick_params(axis='both', which='major', labelsize=ALL_SIZE)
+    plt.xticks(ticks=np.linspace(0, 50, 6))
 
     plt.legend(ncol=1,
                handletextpad=0.1,
                columnspacing=0.7,
                prop={'size': LEGEND_SIZE})
 
-    plt.grid(linewidth=0.3)
+    plt.grid(linewidth=0.2)
     plt.tight_layout()
-    plt.savefig("src/plots/figures/" + type + ".svg")
     plt.savefig("src/plots/figures/" + type + ".png", dpi=400)
     plt.clf()
 
-# ***EXAMPLE*** #
-
-# TODO: Implement your code HERE
 
 if __name__ == "__main__":
     """
@@ -90,18 +91,19 @@ if __name__ == "__main__":
     how to deal with data
     """
 
-    # ***EXAMPLE***
+    # packet_delivery_ratio
 
-    # you can call the compute_data_avg_std in data_elaboration function here to get all the data you need
-    # in this example that function is "approximated" using np.linspace()
+    for m in METRICS_OF_INTEREST:
 
-    algorithm = "algo_1"
-    y_data = np.linspace(0, 10, 5)
-    y_data_std = np.linspace(0, 1, 5)
-    type = "metric_1"
+        y_data = {}
 
-    plot(algorithm=algorithm, y_data=y_data, y_data_std=y_data_std, type=type)
+        for alg in PLOTS_ALGORITMS:
 
-    # ***EXAMPLE***
+            yvalue = []
 
-    # TODO: Implement your code HERE
+            for ndrones in X_VALUES_N_DRONES:
+                yvalue.append(data[alg][str(ndrones)][m])
+
+            y_data[alg] = yvalue
+
+        plot(algorithm=PLOTS_ALGORITMS, y_data_std=None, y_data=y_data, type=m)

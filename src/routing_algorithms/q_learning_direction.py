@@ -9,6 +9,7 @@ from src.utilities import utilities as util
 optimal_init_value = 20
 
 
+
 class QLearningRoutingDirection(BASE_routing):
 
     def __init__(self, drone, simulator):
@@ -121,8 +122,16 @@ class QLearningRoutingDirection(BASE_routing):
             else:
                 reward = -20
 
+            if self.simulator.cur_step / self.simulator.len_simulation < 0.25:
+                self.alpha = 0.8
+            elif self.simulator.cur_step / self.simulator.len_simulation < 0.50:
+                self.alpha = 0.6
+            elif self.simulator.cur_step / self.simulator.len_simulation < 0.75:
+                self.alpha = 0.4
+            else:
+                self.alpha = 0.2
+
             self.gamma = self.simulator.cur_step / self.simulator.len_simulation
-            self.alpha = 1 / self.simulator.cur_step  # todo da rivedere
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             old_q_value = self.q_table[old_state][old_action]

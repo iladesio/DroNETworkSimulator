@@ -5,8 +5,7 @@ You can import constants, lists and dictionaries in plot_data.py
 """
 
 # *** EXAMPLE ***
-import numpy as np
-import matplotlib.pyplot as plt
+import json
 
 LABEL_SIZE = 22
 LEGEND_SIZE = 20
@@ -15,9 +14,20 @@ TICKS_SIZE = 20
 OTHER_SIZES = 20
 
 METRICS_OF_INTEREST = [
-    "number_of_packets_to_depot",
-    "packet_mean_delivery_time",
-    "mean_number_of_relays"]
+    MEAN_NUMBER_OF_RELAYS,
+    PACKET_MEAN_DELIVERY_TIME,
+    PACKET_DELIVERY_RATIO,
+    SCORE,
+]
+
+MAP_METRIC_TO_TITLE = {
+    MEAN_NUMBER_OF_RELAYS: "Mean number of relays",
+    PACKET_MEAN_DELIVERY_TIME: "Packet mean delivery time",
+    PACKET_DELIVERY_RATIO: "Packet delivery ratio",
+    SCORE: "Score"
+}
+
+X_VALUES_N_DRONES = [5, 10, 15, 20, 25, 40, 50]
 
 SCALE_LIM_DICT = {
     "number_of_packets_to_depot": {

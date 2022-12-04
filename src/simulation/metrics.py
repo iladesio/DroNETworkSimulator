@@ -149,6 +149,8 @@ class Metrics:
             "number_of_events_to_depot": self.number_of_events_to_depot,
             "number_of_packets_to_depot": self.number_of_packets_to_depot,
             "mean_number_of_relays": np.nanmean(self.mean_numbers_of_possible_relays),
+            "packet_mean_delivery_time": self.packet_mean_delivery_time,
+            "score": self.score()
         }
 
     def info_mission(self):
