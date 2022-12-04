@@ -121,8 +121,6 @@ class Metrics:
         """
         print the overall stats of the alg execution
         @return:
-        """
-        self.other_metrics()
         print(f"*** Relays ***")
         print("Mean number of relays: ", np.nanmean(self.mean_numbers_of_possible_relays))
 
@@ -137,33 +135,20 @@ class Metrics:
         print("Data packets generated during simulation: ", self.all_data_packets_in_simulation)
         print("Number of packets to depot: ", self.number_of_packets_to_depot)
         print("Packet mean delivery time (seconds): ", self.packet_mean_delivery_time)
+        """
+        self.other_metrics()
         print("Packet delivery ratio: ", self.number_of_packets_to_depot / self.all_data_packets_in_simulation)
 
     def get_metrics(self):
         self.other_metrics()
         return {
             "packet_delivery_ratio": self.number_of_packets_to_depot / self.all_data_packets_in_simulation,
-            "len_simulation": self.simulator.len_simulation,
-            "time_step_duration": self.simulator.time_step_duration,
             "seed": self.simulator.seed,
             "n_drones": self.simulator.n_drones,
-            "env_width": self.simulator.env_width,
-            "env_height": self.simulator.env_height,
-            "drone_com_range": self.simulator.drone_com_range,
-            "drone_sen_range": self.simulator.drone_sen_range,
-            "drone_speed": self.simulator.drone_speed,
-            "drone_max_buffer_size": self.simulator.drone_max_buffer_size,
-            "drone_max_energy": self.simulator.drone_max_energy,
-            "drone_retransmission_delta": self.simulator.drone_retransmission_delta,
-            "drone_communication_success": self.simulator.drone_communication_success,
-            "depot_com_range": self.simulator.depot_com_range,
-            "depot_coordinates": self.simulator.depot_coordinates,
-            "event_duration": self.simulator.event_duration,
-            "packets_max_ttl": self.simulator.packets_max_ttl,
-            "show_plot": self.simulator.show_plot,
-            "routing_algorithm": str(self.simulator.routing_algorithm),
-            "communication_error_type": str(self.simulator.communication_error_type),
-            "time_on_active_routing": str(self.time_on_active_routing)
+            "number_of_detected_events": self.number_of_detected_events,
+            "number_of_events_to_depot": self.number_of_events_to_depot,
+            "number_of_packets_to_depot": self.number_of_packets_to_depot,
+            "mean_number_of_relays": np.nanmean(self.mean_numbers_of_possible_relays),
         }
 
     def info_mission(self):

@@ -16,7 +16,7 @@ class QLearningRoutingDirection(BASE_routing):
         self.taken_actions = {}
 
         """     Representation of the states                        Optimistic value for 
-                (direction, cell_index)                             each state
+                (direction, cell_index)                             each state (M = Move, K = Keep)
         +------------------+------------------+                 +----------+----------+             
         |  (2,2) | (1,2)   |   (2,3) | (1,3)  |                 |  M | M   |   M | M  |             
         |  ------+------   |   ------+------  |                 |  --+--   |   --+--  |   
@@ -53,7 +53,7 @@ class QLearningRoutingDirection(BASE_routing):
         self.alpha = 0.6  # ToModify
 
         # Discount Factor
-        self.gamma = 0.0  # ToModify
+        self.gamma = 0.0  # calculate at each timestep
 
         # Epsilon
         self.epsilon = 0.95  # ToModify
@@ -121,7 +121,8 @@ class QLearningRoutingDirection(BASE_routing):
             else:
                 reward = -20
 
-            gamma = self.simulator.cur_step / self.simulator.len_simulation
+            self.gamma = self.simulator.cur_step / self.simulator.len_simulation
+            self.alpha = 1 / self.simulator.cur_step  # todo da rivedere
 
             # receive the reward for moving to the new state, and calculate the temporal difference
             old_q_value = self.q_table[old_state][old_action]
@@ -135,6 +136,7 @@ class QLearningRoutingDirection(BASE_routing):
             del self.taken_actions[id_event]
 
     def relay_selection(self, opt_neighbors: list, packet):
+
         """
         This function returns the best relay to send packets.
         @param packet:
