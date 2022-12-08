@@ -79,6 +79,15 @@ PLOT_DICT = {
         "color": 'blue',
         "label": " QL",
         "x_ticks_positions": [str(i) for i in range(0, 31)]
+    },
+
+    "timestep": {
+        "hatch": "",
+        "markers": ".",
+        "linestyle": "-",
+        "color": 'blue',
+        "label": " QL",
+        "x_ticks_positions": [10, 15, 20, 30, 40, 50, 70, 80, 90, 100, 150, 200, 300]
     }
 }
 

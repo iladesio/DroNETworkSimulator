@@ -79,6 +79,7 @@ def main():
                 print(seed, " : ", simulation_results[seed]["packet_delivery_ratio"])
 
         else:
+            """
             simulation_results = {}
 
             for alg in ["RND", "GEO", "DIR_QL"]:
@@ -120,6 +121,51 @@ def main():
                 simulation_results[alg] = algoritm_results
 
             simulation_name = "simulation_metrics" + utilities.date() + "_"
+            filename = (config.ROOT_EVALUATION_DATA + simulation_name + ".json")
+
+            js = json.dumps(simulation_results)
+            f = open(filename, "w")
+            f.write(js)
+            f.close()
+
+            print(simulation_results)
+
+            """
+            simulation_results = {}
+
+            for num_steps in [10, 15, 20, 30, 40, 50, 70, 80, 90, 100, 150, 200, 300]:
+                print("LEN_ SIMULATION: ", num_steps)
+
+                sim = Simulator(len_simulation=num_steps * 1000,
+                                time_step_duration=config.TS_DURATION,
+                                seed=config.SEED,
+                                n_drones=config.N_DRONES,
+                                env_width=config.ENV_WIDTH,
+                                env_height=config.ENV_HEIGHT,
+                                drone_com_range=config.COMMUNICATION_RANGE_DRONE,
+                                drone_sen_range=config.SENSING_RANGE_DRONE,
+                                drone_speed=config.DRONE_SPEED,
+                                drone_max_buffer_size=config.DRONE_MAX_BUFFER_SIZE,
+                                drone_max_energy=config.DRONE_MAX_ENERGY,
+                                drone_retransmission_delta=config.RETRANSMISSION_DELAY,
+                                drone_communication_success=config.COMMUNICATION_P_SUCCESS,
+                                depot_com_range=config.DEPOT_COMMUNICATION_RANGE,
+                                depot_coordinates=config.DEPOT_COO,
+                                event_duration=config.EVENTS_DURATION,
+                                event_generation_prob=config.P_FEEL_EVENT,
+                                event_generation_delay=config.D_FEEL_EVENT,
+                                packets_max_ttl=config.PACKETS_MAX_TTL,
+                                show_plot=config.PLOT_SIM,
+                                routing_algorithm=config.ROUTING_ALGORITHM,
+                                communication_error_type=config.CHANNEL_ERROR_TYPE,
+                                prob_size_cell_r=config.CELL_PROB_SIZE_R,
+                                simulation_name="")
+                sim.run()  # run the simulation
+                sim.close()
+
+                simulation_results[num_steps] = sim.metrics.get_metrics()
+
+            simulation_name = "num_steps_simulation_metrics" + utilities.date() + "_"
             filename = (config.ROOT_EVALUATION_DATA + simulation_name + ".json")
 
             js = json.dumps(simulation_results)

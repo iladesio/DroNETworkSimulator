@@ -121,6 +121,9 @@ class Metrics:
         """
         print the overall stats of the alg execution
         @return:
+        """
+        self.other_metrics()
+
         print(f"*** Relays ***")
         print("Mean number of relays: ", np.nanmean(self.mean_numbers_of_possible_relays))
 
@@ -135,8 +138,7 @@ class Metrics:
         print("Data packets generated during simulation: ", self.all_data_packets_in_simulation)
         print("Number of packets to depot: ", self.number_of_packets_to_depot)
         print("Packet mean delivery time (seconds): ", self.packet_mean_delivery_time)
-        """
-        self.other_metrics()
+
         print("Packet delivery ratio: ", self.number_of_packets_to_depot / self.all_data_packets_in_simulation)
 
     def get_metrics(self):

@@ -53,9 +53,9 @@ def plot(algorithm: list,
     """
 
     fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(8.5, 6.5))
-
     """
-    # ------------------- get line in plot for each algorithm ------------------- 
+
+    # ------------------- get line in plot for each algorithm -------------------
     for alg in algorithm:
         axs.errorbar(x=np.array(PLOT_DICT[alg]["x_ticks_positions"]),
                      y=y_data[alg],
@@ -64,11 +64,10 @@ def plot(algorithm: list,
                      linestyle=PLOT_DICT[alg]["linestyle"],
                      color=PLOT_DICT[alg]["color"],
                      markersize=5)
-                     
+
     axs.set_ylabel(ylabel=MAP_METRIC_TO_TITLE[type], fontsize=LABEL_SIZE)
     axs.set_xlabel(xlabel="Number of Drones", fontsize=LABEL_SIZE)
     axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
-    """
 
     # ------------------- get line in plot by seed -------------------
 
@@ -84,8 +83,38 @@ def plot(algorithm: list,
     axs.set_ylabel(ylabel="Packet delivery ratio", fontsize=LABEL_SIZE)
     axs.set_xlabel(xlabel="Seed", fontsize=LABEL_SIZE)
     axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
+    
+        plt.xticks(ticks=np.linspace(0, 30, 30))
+    """
 
-    plt.xticks(ticks=np.linspace(0, 30, 30))
+    """
+    plt.xticks(ticks=np.linspace(0, 50, 6))
+
+    plt.legend(ncol=1,
+               handletextpad=0.1,
+               columnspacing=0.7,
+               prop={'size': LEGEND_SIZE})
+
+    plt.grid(linewidth=0.2)
+    plt.tight_layout()
+    plt.savefig("src/plots/figures/" + type + ".png", dpi=400)
+    plt.clf()
+    """
+
+    axs.errorbar(x=np.array(PLOT_DICT["timestep"]["x_ticks_positions"]),
+                 y=y_data,
+                 label=PLOT_DICT["timestep"]["label"],
+                 marker=PLOT_DICT["timestep"]["markers"],
+                 linestyle=PLOT_DICT["timestep"]["linestyle"],
+                 color=PLOT_DICT["timestep"]["color"],
+                 markersize=5)
+
+    # timestep
+    axs.set_ylabel(ylabel="Packet delivery ratio", fontsize=LABEL_SIZE)
+    axs.set_xlabel(xlabel="Simulation timesteps duration (*1000)", fontsize=LABEL_SIZE)
+    axs.tick_params(axis='both', which='major', labelsize=OTHER_SIZES)
+
+    plt.xticks(ticks=np.linspace(0, 300, len([10, 15, 20, 30, 40, 50, 70, 80, 90, 100, 150, 200, 300])))
 
     plt.legend(ncol=1,
                handletextpad=0.1,
@@ -107,9 +136,8 @@ if __name__ == "__main__":
     how to deal with data
     """
 
-    # packet_delivery_ratio
-
     """
+
     # metrics by algorithm
     for m in METRICS_OF_INTEREST:
 
@@ -119,12 +147,12 @@ if __name__ == "__main__":
             for ndrones in X_VALUES_N_DRONES:
                 yvalue.append(data[alg][str(ndrones)][m])
             y_data[alg] = yvalue
-        plot(algorithm=PLOTS_ALGORITMS, y_data_std=None, y_data=y_data, type=m) 
+        plot(algorithm=PLOTS_ALGORITMS, y_data_std=None, y_data=y_data, type=m)
     """
 
     # seed
     yvalue = []
-    for i in range(0, 31):
+    for i in [10, 15, 20, 30, 40, 50, 70, 80, 90, 100, 150, 200, 300]:
         yvalue.append(data[str(i)]["packet_delivery_ratio"])
 
-    plot(algorithm=["DIR_QL"], y_data_std=None, y_data=yvalue, type="seed-packet_delivery_ratio")
+    plot(algorithm=["DIR_QL"], y_data_std=None, y_data=yvalue, type="timestep-packet_delivery_ratio")
