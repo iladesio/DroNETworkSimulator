@@ -14,14 +14,15 @@ class ARDeepLearningRouting(BASE_routing):
 
     def __init__(self, drone, simulator):
         BASE_routing.__init__(self, drone=drone, simulator=simulator)
+
+        # use this to have always the same simulation
+        random.seed(self.simulator.seed)
+
         self.taken_actions = {}
 
         self.dq_table = {}
 
         self.omega = 0  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
-
-        # use this to have always the same simulation
-        random.seed(self.simulator.seed)
 
     def feedback(self, drone, id_event, delay, outcome):
         """
@@ -45,62 +46,14 @@ class ARDeepLearningRouting(BASE_routing):
             # TIPS: implement here the q-table updating process
             # Drone id and Taken actions
 
-            state, action, current_waypoint = self.taken_actions[id_event]
+            state, action = self.taken_actions[id_event]
 
-            old_state = state
-            old_action = action
-
-            # current_waypoint = waypoint in which action was taken - postincrement - starts from 0
-            # self.drone.waypoint_history is a list of waypoint coords without the current drone
-
-            if self.drone.current_waypoint != current_waypoint:
-                sub_history = self.drone.waypoint_history[current_waypoint:]
-
-                p1 = sub_history[0]
-
-                sub_history = self.drone.waypoint_history[current_waypoint + 1:]
-
-                if len(sub_history) == 0:
-                    p2 = self.drone.next_target()
-                else:
-                    p2 = sub_history[0]
-
-                current_cell = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
-                                                                 width_area=self.simulator.env_width,
-                                                                 x_pos=p1[0],
-                                                                 y_pos=p1[1])[0]
-
-                current_direction = util.map_angle_to_state(util.get_angle_degree(p1, p2))
-                next_state = (current_direction, int(current_cell))
-
-            else:
-                next_state = state
-
-            # reward or update using the old state and the selected action at that time
-            # do something or train the model (?)
-            if outcome == 1:
-                reward = (2000 - delay) / 50  # to a maximum of 40
-            else:
-                reward = -20
-
-            if self.simulator.cur_step / self.simulator.len_simulation < 0.25:
-                self.alpha = 0.8
-            elif self.simulator.cur_step / self.simulator.len_simulation < 0.50:
-                self.alpha = 0.6
-            elif self.simulator.cur_step / self.simulator.len_simulation < 0.75:
-                self.alpha = 0.4
-            else:
-                self.alpha = 0.2
-
-            self.gamma = self.simulator.cur_step / self.simulator.len_simulation
-
-            # receive the reward for moving to the new state, and calculate the temporal difference
-            old_q_value = self.q_table[old_state][old_action]
-            temporal_difference = reward + self.gamma * (max(self.q_table[next_state])) - old_q_value
-
-            # Bellman equation: update the Q-value for the previous state and action pair
-            new_q_value = old_q_value + (self.alpha * temporal_difference)
-            self.q_table[old_state][old_action] = new_q_value
+            """
+            REWARD FUNCTION
+            Rmax, when neighbor bj is the destination
+            −Rmax, when neighbor bj is the local minimum
+            ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
+            """
 
             # remove the entry, the action has received the feedback
             del self.taken_actions[id_event]
@@ -118,22 +71,46 @@ class ARDeepLearningRouting(BASE_routing):
             hello_packet should contain also the residual energy
         """
 
-        # expected connection time of the link
-        connection_time = 0
+        list_neighbors = [n[1] for n in opt_neighbors]
 
-        # Packet Error Ratio of the link
-        packet_error_ratio = 0
+        states = {}
 
-        # remaining energy of neighbor bj
-        remaining_energy = 0
+        for neighbor in list_neighbors:
+            # expected connection time of the link
+            # todo capire come calcolare
+            connection_time = 100
 
-        # distance between neighbor bj and destination des
-        dist_bj_destination = 0
+            # Packet Error Ratio of the link - generated randomly between 0 and 0.2
+            packet_error_ratio = random.uniform(0, 0.2)
 
-        # minimum distance between a two hop neighbor bk and des
-        min_distance_bk_des = 0
+            # remaining energy of neighbor bj
+            remaining_energy = neighbor.residual_energy
 
-        # Strategy: Epsilon-Greedy
-        # Decide if the agent should explore or exploit using epsilon
+            # distance between neighbor bj and destination des
+            dist_bj_destination = util.euclidean_distance(neighbor.coord, self.simulator.depot_coordinates)
+
+            # minimum distance between a two hop neighbor bk and des
+            # todo capire come calcolare
+            min_distance_bk_des = 100
+
+            # C ui, bj = (ct ui,bj,         expected connection time of the link
+            #               PER ui, bj,     Packet Error Ratio of the link
+            #               e bj            remaining energy of neighbor bj
+            #               d bj, des,      distance between neighbor bj and destination des
+            #               d min)          minimum distance between a two hop neighbor bk and des
+
+            states[neighbor.identifier] = (
+                connection_time,
+                packet_error_ratio,
+                remaining_energy,
+                dist_bj_destination,
+                min_distance_bk_des
+            )
+
+        chosen_state = states[0]
+        chosen_action = None
+
+        # todo calculate next state and choose next drone
+        self.taken_actions[packet.event_ref.identifier] = (chosen_state, chosen_action)
 
         return None
