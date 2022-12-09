@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.utilities import utilities as util
@@ -24,6 +25,13 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.omega = 0  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
+        # Constants used in normalization of states:
+        self.connection_time_max = 0
+
+        self.R_max = 2
+
+        connection_time_min = 0 # è costante?
+
     def feedback(self, drone, id_event, delay, outcome):
         """
         Feedback returned when the packet arrives at the depot or
@@ -48,12 +56,41 @@ class ARDeepLearningRouting(BASE_routing):
 
             state, action = self.taken_actions[id_event]
 
+            local_minimum = True
+            for n in state:
+                if n[3] < 1:
+                    local_minimum = False
+
+            state = state[action]
+
             """
             REWARD FUNCTION
             Rmax, when neighbor bj is the destination
             −Rmax, when neighbor bj is the local minimum
             ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
             """
+            # when neighbor bj is the destination
+            if outcome == 1:    #non sono sicura
+                reward = self.R_max
+            # when neighbor bj is the local minimum (all neighbors of node ui are further away from the destination than node ui)
+            elif local_minimum is True:
+                reward = - self.R_max
+            else:
+                dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
+                dist_bj_destination = util.euclidean_distance(action.coord, self.self.drone.depot.coords)
+                connection_time = state[0]
+                packet_error_ratio = state[1]
+                remaining_energy = state[2]
+
+                if connection_time >= self.connection_time_min:
+                    beta = 1
+                else:
+                    beta = 0
+
+                D_ui_bj = dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
+
+                reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
+
 
             # remove the entry, the action has received the feedback
             del self.taken_actions[id_event]
@@ -73,7 +110,7 @@ class ARDeepLearningRouting(BASE_routing):
 
         list_neighbors = [n[1] for n in opt_neighbors]
 
-        states = {}
+        state = {}
 
         for neighbor in list_neighbors:
             # expected connection time of the link
@@ -99,7 +136,15 @@ class ARDeepLearningRouting(BASE_routing):
             #               d bj, des,      distance between neighbor bj and destination des
             #               d min)          minimum distance between a two hop neighbor bk and des
 
-            states[neighbor.identifier] = (
+            # Normalization in range [0, 1] of all the elements of the state
+            connection_time = connection_time / self.connection_time_max
+            remaining_energy = remaining_energy / self.simulator.drone_max_energy
+            dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
+            dist_bj_destination = np.min(dist_bj_destination/dist_ui_destination, 1)
+            min_distance_bk_des = np.min(min_distance_bk_des/dist_ui_destination, 1)
+
+            # state[neighbor.identifier] = (
+            state[neighbor] = (
                 connection_time,
                 packet_error_ratio,
                 remaining_energy,
@@ -107,7 +152,7 @@ class ARDeepLearningRouting(BASE_routing):
                 min_distance_bk_des
             )
 
-        chosen_state = states[0]
+        chosen_state = state[0]
         chosen_action = None
 
         # todo calculate next state and choose next drone
