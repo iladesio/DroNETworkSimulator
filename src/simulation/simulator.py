@@ -2,13 +2,12 @@ import math
 import time
 from collections import defaultdict
 
-import numpy as np
-
 from src.drawing import pp_draw
 from src.entities.uav_entities import *
 from src.routing_algorithms.net_routing import MediumDispatcher
 from src.simulation.metrics import Metrics
 from src.utilities import config, utilities
+from src.utilities.config import RoutingAlgorithm
 
 """
 This file contains the Simulation class. It allows to explicit all the relevant parameters of the simulation,
@@ -218,6 +217,12 @@ class Simulator:
                 drone.update_packets(cur_step)
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
+
+            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL:
+                # get and store next state of every drones
+                for drone in self.drones:
+                    # todo calcolare il next state di ogni drone, solo se serve =)
+                    drone.get_neighbours()
 
             # in case we need probability map
             if config.ENABLE_PROBABILITIES:

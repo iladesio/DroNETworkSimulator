@@ -1,5 +1,6 @@
 from enum import Enum
 
+from src.routing_algorithms.ar_deep_routing import ARDeepLearningRouting
 from src.routing_algorithms.georouting import GeoRouting
 from src.routing_algorithms.q_learning_direction import QLearningRoutingDirection
 from src.routing_algorithms.random_routing import RandomRouting
@@ -83,6 +84,7 @@ class RoutingAlgorithm(Enum):
     GEO = GeoRouting
     RND = RandomRouting
     DIR_QL = QLearningRoutingDirection
+    ARDEEP_QL = ARDeepLearningRouting
 
     @staticmethod
     def keylist():
