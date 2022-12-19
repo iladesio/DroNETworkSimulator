@@ -349,7 +349,8 @@ class Drone(Entity):
         pk = ev.as_packet(cur_step, self)  # the packet of the event
         if not self.move_routing and not self.come_back_to_mission:
             self.__buffer.append(pk)
-            self.simulator.metrics.all_data_packets_in_simulation += 1
+            # self.simulator.metrics.all_data_packets_in_simulation += 1
+            pass
         else:  # store the events that are missing due to movement routing
             self.simulator.metrics.events_not_listened.add(ev)
 
