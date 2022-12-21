@@ -240,6 +240,12 @@ class Drone(Entity):
         self.come_back_to_mission = False  # if i'm coming back to my applicative mission
         self.last_move_routing = False  # if in the last step i was moving to depot
 
+        # The drone loses energy in those cases:
+        # - when it moves in the AoI
+        # - when it sends a packet to a neighbor
+        # todo: e basta?
+        self.residual_energy = self.simulator.drone_max_energy
+
         # dynamic parameters
         self.tightest_event_deadline = None  # used later to check if there is an event that is about to expire
         self.current_waypoint = 0

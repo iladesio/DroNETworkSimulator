@@ -82,18 +82,20 @@ class ARDeepLearningRouting(BASE_routing):
         self.memory = ReplayMemory(10000)
 
     def select_action(self, state, opt_neighbors):
+        # Strategy: Epsilon-Greedy
+        # Decide if the agent should explore or exploit using epsilon
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * self.simulator.cur_step / EPS_DECAY)
 
         if sample > eps_threshold:
-            # exploit
+            # Exploit - choose the best action
             with torch.no_grad():
                 # t.max(1) will return largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
                 return self.policy_net(state).max(1)[1].view(1, 1)
         else:
-            # explore
+            # Explore - choose a random drone
             return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])
 
     def plot_durations(self, show_result=False):

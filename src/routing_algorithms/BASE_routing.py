@@ -85,8 +85,6 @@ class BASE_routing(metaclass=abc.ABCMeta):
             self.current_n_transmission = 0
             return
 
-
-
         if cur_step % self.simulator.drone_retransmission_delta == 0:
 
             opt_neighbors = []
@@ -112,6 +110,9 @@ class BASE_routing(metaclass=abc.ABCMeta):
                 if best_neighbor is not None:
 
                     self.unicast_message(pkd, self.drone, best_neighbor, cur_step)
+
+                    # The drone send the packet to a neighbor:
+                    self.drone.residual_energy -= 0 # todo: di quanto diminuire
 
                 self.current_n_transmission += 1
 
