@@ -88,6 +88,9 @@ class BASE_routing(metaclass=abc.ABCMeta):
         if cur_step % self.simulator.drone_retransmission_delta == 0:
 
             opt_neighbors = []
+
+            neighbor_id = set()
+
             for hpk_id in self.hello_messages:
                 hpk: HelloPacket = self.hello_messages[hpk_id]
 
@@ -96,6 +99,24 @@ class BASE_routing(metaclass=abc.ABCMeta):
                     continue
 
                 opt_neighbors.append((hpk, hpk.src_drone))
+
+                # todo calculation of connection time
+                id_drone = hpk.src_drone.identifier
+                neighbor_id.add(id_drone)
+                self.drone.connect_time[id_drone] += 1
+
+            # reset the connection time of drone i if it is no longer a neighbor
+            for i in range(self.simulator.n_drones):
+                if i not in neighbor_id:
+                    # check if it can be the connection_time_max or the connection_time_minimum
+                    if self.drone.connection_time_max < self.drone.connect_time[i]:
+                        self.drone.connection_time_max = self.drone.connect_time[i]
+                        print("connection_time_max: ", self.drone.connection_time_max)
+                    elif self.drone.connection_time_minimum_reached > self.drone.connect_time[i]:
+                        self.drone.connection_time_minimum_reached = self.drone.connect_time[i]
+                        print("connection_time_minimum_reached: ", self.drone.connection_time_minimum_reached)
+                    # reset
+                    self.drone.connect_time[i] = 0
 
             if len(opt_neighbors) == 0:
                 return

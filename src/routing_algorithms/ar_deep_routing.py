@@ -193,9 +193,9 @@ class ARDeepLearningRouting(BASE_routing):
 
             # C ui, bj = (ct ui,bj,         expected connection time of the link
             #               PER ui, bj,     Packet Error Ratio of the link
-            #               e bj            remaining energy of neighbor bj
-            #               d bj, des,      distance between neighbor bj and destination des
-            #               d min)          minimum distance between a two hop neighbor bk and des
+            #               e_bj            remaining energy of neighbor bj
+            #               d_bj, des,      distance between neighbor bj and destination des
+            #               d_min)          minimum distance between a two hop neighbor bk and des
 
             # Normalization in range [0, 1] of all the elements of the state
             connection_time = connection_time / self.connection_time_max
@@ -225,6 +225,7 @@ class ARDeepLearningRouting(BASE_routing):
         @param outcome: -1 or 1 (read below)
         @return:
         """
+        pass
         # outcome can be:
         #   -1 if the packet/event expired;
         #    1 if the packets has been delivered to the depot
@@ -290,7 +291,7 @@ class ARDeepLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
-
+        return None
         # todo: hello_packet should contain also the residual energy
 
         list_neighbors = [n[1] for n in opt_neighbors]

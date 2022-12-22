@@ -246,6 +246,11 @@ class Drone(Entity):
         # todo: e basta?
         self.residual_energy = self.simulator.drone_max_energy
 
+        # todo to calculate connection_time_max
+        self.connection_time_max = 0
+        self.connection_time_minimum_reached = 99999999999 # at the end it is 0
+        self.connect_time = [0]*self.simulator.n_drones
+
         # dynamic parameters
         self.tightest_event_deadline = None  # used later to check if there is an event that is about to expire
         self.current_waypoint = 0
@@ -355,7 +360,7 @@ class Drone(Entity):
         pk = ev.as_packet(cur_step, self)  # the packet of the event
         if not self.move_routing and not self.come_back_to_mission:
             self.__buffer.append(pk)
-            # self.simulator.metrics.all_data_packets_in_simulation += 1
+            self.simulator.metrics.all_data_packets_in_simulation += 1 # todo perché sta linea era commentata porco dio?
             pass
         else:  # store the events that are missing due to movement routing
             self.simulator.metrics.events_not_listened.add(ev)

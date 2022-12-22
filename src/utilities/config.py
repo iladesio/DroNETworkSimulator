@@ -100,7 +100,7 @@ class ChannelError(Enum):
         return list(map(lambda c: c.name, ChannelError))
 
 
-ROUTING_ALGORITHM = RoutingAlgorithm.DIR_QL
+ROUTING_ALGORITHM = RoutingAlgorithm.ARDEEP_QL
 
 CHANNEL_ERROR_TYPE = ChannelError.GAUSSIAN
 

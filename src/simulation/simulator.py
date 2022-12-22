@@ -93,6 +93,9 @@ class Simulator:
         self.start = time.time()
         self.event_generator = utilities.EventGenerator(self)
 
+        # todo connection time
+        self.connection_time_max = 0
+
     def __setup_net_dispatcher(self):
         self.network_dispatcher = MediumDispatcher(self.metrics)
 
@@ -218,10 +221,10 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
-                # todo: diminire energia residua del drone dopo che si è mosso?
-                self.drone.residual_energy -= 0 # todo: di quanto diminuire
-
             if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL:
+                # todo: diminire energia residua del drone dopo che si è mosso?
+                drone.residual_energy -= 0 # todo: di quanto diminuire
+
                 # get and store next state of every drones
                 for drone in self.drones:
                     # todo calcolare il next state di ogni drone, solo se serve =)
@@ -233,6 +236,12 @@ class Simulator:
 
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
+
+        # todo calculation of the final max connection time
+        for drone in self.drones:
+            if drone.connection_time_max > self.connection_time_max:
+                self.connection_time_max = drone.connection_time_max
+        print("Final: ", self.connection_time_max)
 
         if config.DEBUG:
             print("End of simulation, sim time: " + str(
