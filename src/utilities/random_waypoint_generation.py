@@ -1,8 +1,8 @@
 import json
-import random
 import math
-import matplotlib.pyplot as plt
+
 import numpy as np
+
 from src.utilities import config
 
 
@@ -69,7 +69,6 @@ def get_tour(autonomy, edge_area, depot_pos, random_generator, range_decision=No
 def random_waypoint_tour(ndrones, nrounds, depot, autonomy, edge_area, random_generator):
     drones_tours = {}
     for d in range(ndrones):
-        print(d)
         d_tours = []
         for r in range(nrounds):
             d_tours.append(get_tour(autonomy, edge_area, depot, random_generator=random_generator))

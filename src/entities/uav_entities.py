@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 
 from src.utilities import config, utilities
@@ -249,9 +251,11 @@ class Drone(Entity):
         self.residual_energy = self.simulator.drone_max_energy
 
         # todo to calculate connection_time_max
-        self.connection_time_max = 0
-        self.connection_time_minimum_reached = 99999999999  # at the end it is 0
-        self.connect_time = [0] * self.simulator.n_drones
+        self.nb_connection_time = self.read_connection_time_values()
+        self.neighbor_connection_time = {}
+
+        for n in range(self.simulator.n_drones):
+            self.neighbor_connection_time[n] = []
 
         # dynamic parameters
         self.tightest_event_deadline = None  # used later to check if there is an event that is about to expire
@@ -271,6 +275,12 @@ class Drone(Entity):
 
         # last mission coord to restore the mission after movement
         self.last_mission_coords = None
+
+    def read_connection_time_values(self):
+        with open(config.CONNECTION_TIME_JSON, 'r') as in_file:
+            data = json.load(in_file)
+
+        return data[str(self.identifier)]
 
     def update_packets(self, cur_step):
         """

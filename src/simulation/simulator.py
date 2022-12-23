@@ -44,6 +44,7 @@ class Simulator:
                  routing_algorithm=config.ROUTING_ALGORITHM,
                  communication_error_type=config.CHANNEL_ERROR_TYPE,
                  prob_size_cell_r=config.CELL_PROB_SIZE_R,
+                 connection_time_max=config.CONNECTION_TIME_MAX,
                  simulation_name=""):
         self.cur_step = None
         self.drone_com_range = drone_com_range
@@ -240,11 +241,10 @@ class Simulator:
                 self.__plot(cur_step)
 
         # todo calculation of the final max connection time
-        for drone in self.drones:
-            if drone.connection_time_max > self.connection_time_max:
-                self.connection_time_max = drone.connection_time_max
-        print("N_drones: ", self.n_drones)
-        print("Final: ", self.connection_time_max)
+        # print("{")
+        # for drone in self.drones:
+        #     print(drone.identifier, ": ", drone.neighbor_connection_time, ", ")
+        # print("}")
 
         if config.DEBUG:
             print("End of simulation, sim time: " + str(

@@ -27,7 +27,7 @@ Attributes that one needs tweak often are tagged with # ***
 CIRCLE_PATH = False  # bool: whether to use cirlce paths around the depot
 DEMO_PATH = False  # bool: whether to use handcrafted tours or not
 # to set up handcrafted torus see utilities.utilities
-PATH_FROM_JSON = True  # bool: whether to use the path (for drones) store in the JSONS_PATH_PREFIX,
+PATH_FROM_JSON = False  # bool: whether to use the path (for drones) store in the JSONS_PATH_PREFIX,
 # otherwise path are generated online
 JSONS_PATH_PREFIX = "data/tours/RANDOM_missions0.json"  # str: the path to the drones tours,
 # the {} should be used to specify the seed -> es. data/tours/RANDOM_missions1.json for seed 1.
@@ -36,6 +36,10 @@ RANDOM_STEPS = [250, 500, 700, 900, 1100,
 RANDOM_START_POINT = True  # bool whether the drones start the mission at random positions
 
 # ------------------------------- CONSTANTS ------------------------------- #
+
+# AR_DEEP constants
+# current data -> sim_duration: 180_000 n_drones: 5
+CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
 
 DEBUG = False  # bool: whether to print debug strings or not.
 EXPERIMENTS_DIR = "data/evaluation_tests/"  # output data : the results of the simulation

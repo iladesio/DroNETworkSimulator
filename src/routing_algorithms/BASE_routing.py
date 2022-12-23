@@ -1,9 +1,10 @@
-from src.entities.uav_entities import DataPacket, ACKPacket, HelloPacket, Packet
-from src.utilities import utilities as util
-from src.utilities import config
+import abc
 
 from scipy.stats import norm
-import abc
+
+from src.entities.uav_entities import DataPacket, ACKPacket, HelloPacket, Packet
+from src.utilities import config
+from src.utilities import utilities as util
 
 
 class BASE_routing(metaclass=abc.ABCMeta):
@@ -89,7 +90,14 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
             opt_neighbors = []
 
-            neighbor_id = set()
+            curr_open_connection_drones = set()
+            prev_open_connection_drones = set()
+
+            # get the list of previous opened connection
+            for neighbour in self.drone.neighbor_connection_time.keys():
+                if self.drone.neighbor_connection_time[neighbour] and \
+                        self.drone.neighbor_connection_time[neighbour][-1][1] is None:
+                    prev_open_connection_drones.add(neighbour)
 
             for hpk_id in self.hello_messages:
                 hpk: HelloPacket = self.hello_messages[hpk_id]
@@ -102,21 +110,20 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                 # todo calculation of connection time
                 id_drone = hpk.src_drone.identifier
-                neighbor_id.add(id_drone)
-                self.drone.connect_time[id_drone] += 1
+                conn_time_history = self.drone.neighbor_connection_time[id_drone]
 
-            # reset the connection time of drone i if it is no longer a neighbor
-            for i in range(self.simulator.n_drones):
-                if i not in neighbor_id:
-                    # check if it can be the connection_time_max or the connection_time_minimum
-                    if self.drone.connection_time_max < self.drone.connect_time[i]:
-                        self.drone.connection_time_max = self.drone.connect_time[i]
-                        # print("connection_time_max: ", self.drone.connection_time_max)
-                    elif self.drone.connection_time_minimum_reached > self.drone.connect_time[i]:
-                        self.drone.connection_time_minimum_reached = self.drone.connect_time[i]
-                        # print("connection_time_minimum_reached: ", self.drone.connection_time_minimum_reached)
-                    # reset
-                    self.drone.connect_time[i] = 0
+                # if we meet the current neighbor for the first time or
+                # there isn't an opened connection, we create it
+                if not conn_time_history or (conn_time_history and conn_time_history[-1][1] is not None):
+                    conn_time_history.append([self.simulator.cur_step, None])
+
+                # we save in a set all current opened connection
+                curr_open_connection_drones.add(id_drone)
+
+            # close previous opened connection that doesn't appear in the current hpk list
+            for neighbour in prev_open_connection_drones:
+                if neighbour not in curr_open_connection_drones:
+                    self.drone.neighbor_connection_time[neighbour][-1][1] = self.simulator.cur_step
 
             if len(opt_neighbors) == 0:
                 return

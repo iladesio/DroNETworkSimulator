@@ -172,6 +172,8 @@ class ARDeepLearningRouting(BASE_routing):
     def get_current_state(self, list_drones):
         state = {}
 
+        connection_time = 0
+
         for neighbor in list_drones:
             # expected connection time of the link
             # todo capire come calcolare
@@ -184,7 +186,7 @@ class ARDeepLearningRouting(BASE_routing):
             remaining_energy = neighbor.residual_energy
 
             # distance between neighbor bj and destination des
-            dist_bj_destination = util.euclidean_distance(neighbor.coord, self.simulator.depot_coordinates)
+            dist_bj_destination = util.euclidean_distance(neighbor.coords, self.simulator.depot_coordinates)
 
             # minimum distance between a two hop neighbor bk and des
             # todo check
@@ -202,7 +204,7 @@ class ARDeepLearningRouting(BASE_routing):
             #               d_min)          minimum distance between a two hop neighbor bk and des
 
             # Normalization in range [0, 1] of all the elements of the state
-            connection_time = connection_time / self.connection_time_max
+            connection_time = connection_time / self.max_conn_time
             remaining_energy = remaining_energy / self.simulator.drone_max_energy
             dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
             dist_bj_destination = np.min(dist_bj_destination / dist_ui_destination, 1)
@@ -294,6 +296,10 @@ class ARDeepLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
+
+        list_neighbors = [n[1] for n in opt_neighbors]
+        state = self.get_current_state(list_neighbors)
+
         return None
 
         list_neighbors = [n[1] for n in opt_neighbors]
