@@ -96,7 +96,7 @@ class Simulator:
         self.start = time.time()
         self.event_generator = utilities.EventGenerator(self)
 
-        self.connection_time_max = connection_time_max
+        self.connection_time_max = utilities.get_max_connection_time(self.drones)
 
     def __setup_net_dispatcher(self):
         self.network_dispatcher = MediumDispatcher(self.metrics)

@@ -298,10 +298,6 @@ class ARDeepLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
-
-        list_neighbors = [n[1] for n in opt_neighbors]
-        state = self.get_current_state(list_neighbors)
-
         return None
 
         list_neighbors = [n[1] for n in opt_neighbors]

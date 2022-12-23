@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 
 from src.utilities import config, utilities
@@ -276,11 +274,7 @@ class Drone(Entity):
         # last mission coord to restore the mission after movement
         self.last_mission_coords = None
 
-    def read_connection_time_values(self):
-        with open(config.CONNECTION_TIME_JSON, 'r') as in_file:
-            data = json.load(in_file)
 
-        return data[str(self.identifier)]
 
     def update_packets(self, cur_step):
         """
