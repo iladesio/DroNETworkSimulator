@@ -62,17 +62,16 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.connection_time_min = 0  # è costante?
 
-        # dictiory to store (cur_state, taken_action, next_state) for each packet
+        # dictionary to store (cur_state, taken_action, next_state) for each packet
         # key: event identifier
-        # next_state is set to None the first time, and it'll be set after a delta time
-        # in the main simulator cycle
+        # next_state is set to None the first time, and it'll be set after a delta time in the main simulator cycle
         self.taken_actions = {}
 
         # example parameters
         self.episode_durations = []
 
-        self.n_actions = self.simulator.n_drones - 1  # todo da vedere
-        self.n_observations = self.simulator.n_drones - 1  # todo da vedere
+        self.n_actions = self.simulator.n_drones  # todo da vedere
+        self.n_observations = self.simulator.n_drones  # todo da vedere
 
         self.policy_net = DQN(self.n_observations, self.n_actions).to(device)
         self.target_net = DQN(self.n_observations, self.n_actions).to(device)
@@ -90,7 +89,7 @@ class ARDeepLearningRouting(BASE_routing):
         if sample > eps_threshold:
             # Exploit - choose the best action
             with torch.no_grad():
-                # t.max(1) will return largest column value of each row.
+                # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
                 return self.policy_net(state).max(1)[1].view(1, 1)
@@ -188,8 +187,13 @@ class ARDeepLearningRouting(BASE_routing):
             dist_bj_destination = util.euclidean_distance(neighbor.coord, self.simulator.depot_coordinates)
 
             # minimum distance between a two hop neighbor bk and des
-            # todo capire come calcolare
-            min_distance_bk_des = 100
+            # todo check
+            nn = neighbor.get_neighbours()
+            min_distance_bk_des = 9999999
+            for n in range(len(nn)):
+                distance_n_depot = util.euclidean_distance(n.coord, self.drone.depot.coords)
+                if distance_n_depot < min_distance_bk_des:
+                    min_distance_bk_des = distance_n_depot
 
             # C ui, bj = (ct ui,bj,         expected connection time of the link
             #               PER ui, bj,     Packet Error Ratio of the link
@@ -284,7 +288,6 @@ class ARDeepLearningRouting(BASE_routing):
             del self.taken_actions[id_event]
 
     def relay_selection(self, opt_neighbors: list, packet):
-
         """
         This function returns the best relay to send packets.
         @param packet:
@@ -292,7 +295,6 @@ class ARDeepLearningRouting(BASE_routing):
         @return: The best drone to use as relay
         """
         return None
-        # todo: hello_packet should contain also the residual energy
 
         list_neighbors = [n[1] for n in opt_neighbors]
         state = self.get_current_state(list_neighbors)

@@ -241,6 +241,7 @@ class Simulator:
         for drone in self.drones:
             if drone.connection_time_max > self.connection_time_max:
                 self.connection_time_max = drone.connection_time_max
+        print("N_drones: ", self.n_drones)
         print("Final: ", self.connection_time_max)
 
         if config.DEBUG:

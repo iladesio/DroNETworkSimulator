@@ -111,10 +111,10 @@ class BASE_routing(metaclass=abc.ABCMeta):
                     # check if it can be the connection_time_max or the connection_time_minimum
                     if self.drone.connection_time_max < self.drone.connect_time[i]:
                         self.drone.connection_time_max = self.drone.connect_time[i]
-                        print("connection_time_max: ", self.drone.connection_time_max)
+                        # print("connection_time_max: ", self.drone.connection_time_max)
                     elif self.drone.connection_time_minimum_reached > self.drone.connect_time[i]:
                         self.drone.connection_time_minimum_reached = self.drone.connect_time[i]
-                        print("connection_time_minimum_reached: ", self.drone.connection_time_minimum_reached)
+                        # print("connection_time_minimum_reached: ", self.drone.connection_time_minimum_reached)
                     # reset
                     self.drone.connect_time[i] = 0
 
