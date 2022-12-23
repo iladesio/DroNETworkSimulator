@@ -1,5 +1,6 @@
 from src.routing_algorithms.BASE_routing import BASE_routing
-import src.utilities.utilities as util
+from src.utilities.utilities import euclidean_distance
+
 
 class GeoRouting(BASE_routing):
 
@@ -15,20 +16,18 @@ class GeoRouting(BASE_routing):
         @return: The best drone to use as relay or None if no relay is selected
         """
 
-        d0_coords = self.drone.next_target()
+        cur_pos = self.drone.coords
+        depot_pos = self.drone.depot.coords
+        # my_distance_to_depot = util.euclidean_distance(cur_pos, depot_pos)
 
-        drone_to_send = None
+        best_distance = euclidean_distance(cur_pos, depot_pos)
+        best_drone = None
+        for hello, neighbor in opt_neighbors:
+            neighbor_pos = hello.cur_pos
+            neighbor_distance_to_depot = euclidean_distance(neighbor_pos, depot_pos)
+            # my_distance_to_neighbor = util.euclidean_distance(cur_pos, neighbor_pos)
+            if neighbor_distance_to_depot < best_distance:
+                best_drone = neighbor
+                best_distance = neighbor_distance_to_depot
 
-        distance_d0_to_depot = util.euclidean_distance(d0_coords, self.drone.depot.coords)
-        best_distance = distance_d0_to_depot
-
-        for hpk, d_drone in opt_neighbors:
-            d_pos = hpk.next_target
-
-            distance_d_to_depot = util.euclidean_distance(d_pos, self.drone.depot.coords)
-
-            if distance_d_to_depot < best_distance:
-                drone_to_send = d_drone
-                best_distance = distance_d_to_depot
-
-        return drone_to_send
+        return best_drone
