@@ -97,7 +97,7 @@ class Simulator:
         self.event_generator = utilities.EventGenerator(self)
 
         # todo connection time
-        self.connection_time_max = 0
+        self.connection_time_max = connection_time_max
 
     def __setup_net_dispatcher(self):
         self.network_dispatcher = MediumDispatcher(self.metrics)

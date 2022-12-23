@@ -56,7 +56,7 @@ class ARDeepLearningRouting(BASE_routing):
         self.omega = 0  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
         # Constants used in normalization of states
-        self.connection_time_max = 0
+        self.max_conn_time = 500  # simulator.connection_time_max todo da risolvere errore
 
         self.R_max = 2
 
@@ -176,8 +176,10 @@ class ARDeepLearningRouting(BASE_routing):
 
         for neighbor in list_drones:
             # expected connection time of the link
-            # todo capire come calcolare
-            connection_time = 100
+            for c in self.drone.nb_connection_time[str(neighbor.identifier)]:
+                if c[0] <= self.simulator.cur_step <= c[1]:
+                    connection_time = c[1] - c[0]
+                    break
 
             # Packet Error Ratio of the link - generated randomly between 0 and 0.2
             packet_error_ratio = random.uniform(0, 0.2)
@@ -192,8 +194,8 @@ class ARDeepLearningRouting(BASE_routing):
             # todo check
             nn = neighbor.get_neighbours()
             min_distance_bk_des = 9999999
-            for n in range(len(nn)):
-                distance_n_depot = util.euclidean_distance(n.coord, self.drone.depot.coords)
+            for n in nn:
+                distance_n_depot = util.euclidean_distance(n[0].coords, self.drone.depot.coords)
                 if distance_n_depot < min_distance_bk_des:
                     min_distance_bk_des = distance_n_depot
 
@@ -207,8 +209,8 @@ class ARDeepLearningRouting(BASE_routing):
             connection_time = connection_time / self.max_conn_time
             remaining_energy = remaining_energy / self.simulator.drone_max_energy
             dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
-            dist_bj_destination = np.min(dist_bj_destination / dist_ui_destination, 1)
-            min_distance_bk_des = np.min(min_distance_bk_des / dist_ui_destination, 1)
+            dist_bj_destination = np.minimum(dist_bj_destination / dist_ui_destination, 1)
+            min_distance_bk_des = np.minimum(min_distance_bk_des / dist_ui_destination, 1)
 
             # state[neighbor.identifier] = (
             state[neighbor.identifier] = (

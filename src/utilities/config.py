@@ -62,30 +62,29 @@ TS_DURATION = 0.150  # float: seconds duration of a step in seconds.
 SEED = 10  # int: seed of this simulation.
 
 N_DRONES = 5  # int: number of drones. # ***
-
+CONNECTION_TIME_MAX = 500
+"""
 # todo With those missions:
-"""
 if N_DRONES == 5:
-    CONNECTION_TIME_MAX =
+    CONNECTION_TIME_MAX = 500
 elif N_DRONES == 10:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 15:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 20:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 25:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 30:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 35:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 40:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 45:
-    CONNECTION_TIME_MAX = 
+    CONNECTION_TIME_MAX = None
 elif N_DRONES == 50:
-    CONNECTION_TIME_MAX = 
-"""
+    CONNECTION_TIME_MAX = None"""
 
 ENV_WIDTH = 1500  # float: meters, width of environment.
 ENV_HEIGHT = 1500  # float: meters, height of environment.
