@@ -27,7 +27,7 @@ Attributes that one needs tweak often are tagged with # ***
 CIRCLE_PATH = False  # bool: whether to use cirlce paths around the depot
 DEMO_PATH = False  # bool: whether to use handcrafted tours or not
 # to set up handcrafted torus see utilities.utilities
-PATH_FROM_JSON = False  # bool: whether to use the path (for drones) store in the JSONS_PATH_PREFIX,
+PATH_FROM_JSON = True  # bool: whether to use the path (for drones) store in the JSONS_PATH_PREFIX,
 # otherwise path are generated online
 JSONS_PATH_PREFIX = "data/tours/RANDOM_missions0.json"  # str: the path to the drones tours,
 # the {} should be used to specify the seed -> es. data/tours/RANDOM_missions1.json for seed 1.

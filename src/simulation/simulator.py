@@ -96,7 +96,6 @@ class Simulator:
         self.start = time.time()
         self.event_generator = utilities.EventGenerator(self)
 
-        # todo connection time
         self.connection_time_max = connection_time_max
 
     def __setup_net_dispatcher(self):
@@ -240,11 +239,7 @@ class Simulator:
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
 
-        # todo calculation of the final max connection time
-        # print("{")
-        # for drone in self.drones:
-        #     print(drone.identifier, ": ", drone.neighbor_connection_time, ", ")
-        # print("}")
+        utilities.save_connection_time_data(self.drones)
 
         if config.DEBUG:
             print("End of simulation, sim time: " + str(
