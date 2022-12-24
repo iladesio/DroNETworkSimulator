@@ -60,7 +60,7 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.R_max = 2
 
-        self.connection_time_min = 0  # è costante?
+        self.connection_time_min = 6  # 1 sec
 
         # dictionary to store (cur_state, taken_action, next_state) for each packet
         # key: event identifier
@@ -178,7 +178,7 @@ class ARDeepLearningRouting(BASE_routing):
             # expected connection time of the link
             for c in self.drone.nb_connection_time[str(neighbor.identifier)]:
                 if c[0] <= self.simulator.cur_step <= c[1]:
-                    connection_time = c[1] - c[0]
+                    connection_time = c[1] - self.simulator.cur_step
                     break
 
             # Packet Error Ratio of the link - generated randomly between 0 and 0.2
