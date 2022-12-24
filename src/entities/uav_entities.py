@@ -238,7 +238,6 @@ class Drone(Entity):
         self.sensing_range = self.simulator.drone_sen_range
         self.communication_range = self.simulator.drone_com_range
         self.buffer_max_size = self.simulator.drone_max_buffer_size
-        self.residual_energy = self.simulator.drone_max_energy
         self.come_back_to_mission = False  # if i'm coming back to my applicative mission
         self.last_move_routing = False  # if in the last step i was moving to depot
 
@@ -272,8 +271,6 @@ class Drone(Entity):
 
         # last mission coord to restore the mission after movement
         self.last_mission_coords = None
-
-
 
     def update_packets(self, cur_step):
         """

@@ -223,6 +223,7 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
+                # todo clean code
                 # todo: decrease the drone's energy when it moves
                 drone.residual_energy -= 1  # todo: di quanto diminuire
                 # when the drone runs out of energy we reset it
