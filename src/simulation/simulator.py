@@ -230,11 +230,12 @@ class Simulator:
                 if drone.residual_energy == 0:
                     drone.residual_energy = self.drone_max_energy
 
-            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL:
+            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL.name and cur_step % self.drone_retransmission_delta == 0:
+                print("l")
                 # get and store next state of every drones
                 for drone in self.drones:
                     # todo calcolare il next state di ogni drone, solo se serve =)
-                    drone.get_neighbours()
+                    next_st = drone.routing_algorithm.update_next_state(drone.get_neighbours())
 
             # in case we need probability map
             if config.ENABLE_PROBABILITIES:

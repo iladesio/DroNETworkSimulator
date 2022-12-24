@@ -80,6 +80,8 @@ class ARDeepLearningRouting(BASE_routing):
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
         self.memory = ReplayMemory(10000)
 
+        self.next_state_
+
     def select_action(self, state, opt_neighbors):
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
@@ -223,6 +225,10 @@ class ARDeepLearningRouting(BASE_routing):
 
         return state
 
+    def update_next_state(self, list_drones):
+        next_state = self.get_current_state(list_drones)
+
+
     def feedback(self, drone, id_event, delay, outcome):
         """
         Feedback returned when the packet arrives at the depot or
@@ -233,7 +239,7 @@ class ARDeepLearningRouting(BASE_routing):
         @param outcome: -1 or 1 (read below)
         @return:
         """
-        pass
+        return
         # outcome can be:
         #   -1 if the packet/event expired;
         #    1 if the packets has been delivered to the depot
@@ -298,18 +304,17 @@ class ARDeepLearningRouting(BASE_routing):
         @param opt_neighbors: a list of tuple (hello_packet, source_drone)
         @return: The best drone to use as relay
         """
-        return None
 
         list_neighbors = [n[1] for n in opt_neighbors]
         state = self.get_current_state(list_neighbors)
 
-        chosen_action = self.select_action(state, opt_neighbors)
+        chosen_action = None #self.select_action(state, opt_neighbors)
 
         # build the tuple with each state starting from the complete list of drones
         # i.e. [0, (...state...), 0, 0, (...state...) ]
         complete_state = [state[drone.identifier] if drone in list_neighbors else 0 for drone in self.simulator.drones]
 
         # store in taken actions
-        self.taken_actions[packet.event_ref.identifier] = (complete_state, chosen_action.identifier, None)
+        self.taken_actions[packet.event_ref.identifier] = (complete_state, chosen_action, None)#.identifier, None)
 
-        return chosen_action
+        return None #chosen_action
