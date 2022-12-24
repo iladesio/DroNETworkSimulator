@@ -223,10 +223,13 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
-            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL:
-                # todo: diminire energia residua del drone dopo che si è mosso?
-                drone.residual_energy -= 0  # todo: di quanto diminuire
+                # todo: decrease the drone's energy when it moves
+                drone.residual_energy -= 1  # todo: di quanto diminuire
+                # when the drone runs out of energy we reset it
+                if drone.residual_energy == 0:
+                    drone.residual_energy = self.drone_max_energy
 
+            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL:
                 # get and store next state of every drones
                 for drone in self.drones:
                     # todo calcolare il next state di ogni drone, solo se serve =)

@@ -245,11 +245,10 @@ class Drone(Entity):
         # The drone loses energy in those cases:
         # - when it moves in the AoI
         # - when it sends a packet to a neighbor
-        # todo: e basta?
         self.residual_energy = self.simulator.drone_max_energy
 
         # todo to calculate connection_time_max
-        self.nb_connection_time = self.read_connection_time_values()
+        self.nb_connection_time = utilities.read_connection_time_values(self.identifier)
         self.neighbor_connection_time = {}
 
         for n in range(self.simulator.n_drones):

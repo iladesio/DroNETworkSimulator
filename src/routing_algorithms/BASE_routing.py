@@ -139,9 +139,6 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                     self.unicast_message(pkd, self.drone, best_neighbor, cur_step)
 
-                    # The drone send the packet to a neighbor:
-                    self.drone.residual_energy -= 0 # todo: di quanto diminuire
-
                 self.current_n_transmission += 1
 
     def geo_neighborhood(self, drones, no_error=False):
@@ -194,11 +191,18 @@ class BASE_routing(metaclass=abc.ABCMeta):
         for d_drone in dst_drones:
             self.unicast_message(packet, src_drone, d_drone, curr_step)
 
+
     def unicast_message(self, packet, src_drone, dst_drone, curr_step):
         """ send a message to my neigh drones"""
         # Broadcast using Network dispatcher
         self.simulator.network_dispatcher.send_packet_to_medium(packet, src_drone, dst_drone,
                                                                 curr_step + config.LIL_DELTA)
+
+        # todo: decrease the drone's energy when it sends a packet
+        self.drone.residual_energy -= 1 # todo: di quanto diminuire
+        # when the drone runs out of energy we reset it
+        if self.drone.residual_energy == 0:
+            self.drone.residual_energy = self.simulator.drone_max_energy
 
     def gaussian_success_handler(self, drones_distance):
         """ get the probability of the drone bucket """
