@@ -450,7 +450,7 @@ class Drone(Entity):
                 return self.path[self.current_waypoint + 1]
 
     def get_neighbours(self):
-        return self.routing_algorithm.geo_neighborhood(self.simulator.drones)
+        return self.routing_algorithm.geo_neighborhood(self.simulator.drones, True)
 
     def __move_to_mission(self, time):
         """ When invoked the drone moves on the map. TODO: Add comments and clean.

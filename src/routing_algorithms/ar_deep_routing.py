@@ -80,8 +80,6 @@ class ARDeepLearningRouting(BASE_routing):
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
         self.memory = ReplayMemory(10000)
 
-        self.next_state_
-
     def select_action(self, state, opt_neighbors):
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
@@ -225,9 +223,16 @@ class ARDeepLearningRouting(BASE_routing):
 
         return state
 
-    def update_next_state(self, list_drones):
-        next_state = self.get_current_state(list_drones)
+    def update_next_state(self, list_neighbors):
 
+        state = self.get_current_state(list_neighbors)
+        next_state = [state[drone.identifier] if drone in list_neighbors else 0 for drone in self.simulator.drones]
+
+        for event_id in self.taken_actions.keys():
+            if self.taken_actions[event_id][2] is None:
+                if len(list_neighbors) > 0:
+                    prev_state, chosen_action, ns = self.taken_actions[event_id]
+                    self.taken_actions[event_id] = (prev_state, chosen_action, next_state)
 
     def feedback(self, drone, id_event, delay, outcome):
         """
@@ -239,6 +244,15 @@ class ARDeepLearningRouting(BASE_routing):
         @param outcome: -1 or 1 (read below)
         @return:
         """
+        if id_event in self.taken_actions:
+            # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
+            # TIPS: implement here the q-table updating process
+            # Drone id and Taken actions
+
+            state, action, next_state = self.taken_actions[id_event]
+
+            if next_state is None and outcome == 1:
+                print("paperino")
         return
         # outcome can be:
         #   -1 if the packet/event expired;
@@ -308,13 +322,13 @@ class ARDeepLearningRouting(BASE_routing):
         list_neighbors = [n[1] for n in opt_neighbors]
         state = self.get_current_state(list_neighbors)
 
-        chosen_action = None #self.select_action(state, opt_neighbors)
-
         # build the tuple with each state starting from the complete list of drones
         # i.e. [0, (...state...), 0, 0, (...state...) ]
         complete_state = [state[drone.identifier] if drone in list_neighbors else 0 for drone in self.simulator.drones]
 
-        # store in taken actions
-        self.taken_actions[packet.event_ref.identifier] = (complete_state, chosen_action, None)#.identifier, None)
+        chosen_action = None  # self.select_action(complete_state, opt_neighbors)
 
-        return None #chosen_action
+        # store in taken actions
+        self.taken_actions[packet.event_ref.identifier] = (complete_state, chosen_action, None)  # .identifier, None)
+
+        return None  # chosen_action
