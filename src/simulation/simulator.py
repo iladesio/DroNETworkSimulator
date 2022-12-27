@@ -232,7 +232,7 @@ class Simulator:
                 # todo: decrease the drone's energy when it moves
                 drone.residual_energy -= 1  # todo: di quanto diminuire
                 # when the drone runs out of energy we reset it
-                if drone.residual_energy == 0:
+                if drone.residual_energy <= 0:
                     drone.residual_energy = self.drone_max_energy
 
             # todo da rivedere

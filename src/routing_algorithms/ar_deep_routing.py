@@ -79,7 +79,6 @@ class ARDeepLearningRouting(BASE_routing):
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
-        self.memory = ReplayMemory(10000)
 
     def select_action(self, state, opt_neighbors):
         # Strategy: Epsilon-Greedy
@@ -93,7 +92,21 @@ class ARDeepLearningRouting(BASE_routing):
                 # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                return self.policy_net(state).max(1)[1].view(1, 1)
+
+                unified_state = []
+                for statino in state:
+                    unified_state = unified_state + statino
+
+                results = self.policy_net(torch.Tensor(unified_state)).tolist()
+                neighbors_identifiers = numpy.argsort(results)[::-1]
+
+                nb = [n[1].identifier for n in opt_neighbors]
+                for i in neighbors_identifiers:
+                    if i in nb:
+                        return self.simulator.drones[i]
+                    elif i is self.drone.identifier:
+                        return self.drone
+
         else:
             # Explore - choose a random drone
             return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])
@@ -223,9 +236,41 @@ class ARDeepLearningRouting(BASE_routing):
                 remaining_energy,
                 dist_bj_destination,
                 min_distance_bk_des
-            )
+            ]
 
-        return state
+        """ CURRENT DRONE """
+
+        min_distance_bk_des = 9999999
+        for n in list_drones:
+            distance_n_depot = util.euclidean_distance(n.coords, self.simulator.depot_coordinates)
+            if distance_n_depot < min_distance_bk_des:
+                min_distance_bk_des = distance_n_depot
+
+        connection_time = 1
+        packet_error_ratio = 0
+        remaining_energy = self.drone.residual_energy / self.simulator.drone_max_energy
+        dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
+        dist_bj_destination = 1
+
+        if dist_ui_destination == 0:
+            min_distance_bk_des = 0
+        else:
+            min_distance_bk_des = np.minimum(min_distance_bk_des / dist_ui_destination, 1)
+
+        # build the tuple with each state starting from the complete list of drones
+        # i.e. [0, (...state...), 0, 0, (...state...) ]
+        complete_state = [state[drone.identifier] if drone in list_drones else [0, 0, 0, 0, 0] for drone in
+                          self.simulator.drones]
+
+        complete_state[self.drone.identifier] = [
+            connection_time,
+            packet_error_ratio,
+            remaining_energy,
+            dist_bj_destination,
+            min_distance_bk_des
+        ]
+
+        return complete_state
 
     def update_next_state(self, list_neighbors):
 
