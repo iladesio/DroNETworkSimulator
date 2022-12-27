@@ -3,13 +3,13 @@ import random
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy
 import numpy as np
 import torch
 import torch.optim as optim
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.routing_algorithms.deep_ql.dqn import DQN
-from src.routing_algorithms.deep_ql.replay_memory import ReplayMemory
 from src.utilities import utilities as util
 
 # set up matplotlib
@@ -73,8 +73,9 @@ class ARDeepLearningRouting(BASE_routing):
         self.n_actions = self.simulator.n_drones  # todo da vedere
         self.n_observations = self.simulator.n_drones  # todo da vedere
 
-        self.policy_net = DQN(self.n_observations, self.n_actions).to(device)
-        self.target_net = DQN(self.n_observations, self.n_actions).to(device)
+        # todo check number of layers of dqn
+        self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(device)
+        self.target_net = DQN(self.n_observations * 5, self.n_actions).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
@@ -191,7 +192,6 @@ class ARDeepLearningRouting(BASE_routing):
             dist_bj_destination = util.euclidean_distance(neighbor.coords, self.simulator.depot_coordinates)
 
             # minimum distance between a two hop neighbor bk and des
-            # todo check
             nn = neighbor.get_neighbours()
             min_distance_bk_des = 9999999
             for n in nn:
@@ -209,11 +209,15 @@ class ARDeepLearningRouting(BASE_routing):
             connection_time = connection_time / self.max_conn_time
             remaining_energy = remaining_energy / self.simulator.drone_max_energy
             dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
-            dist_bj_destination = np.minimum(dist_bj_destination / dist_ui_destination, 1)
-            min_distance_bk_des = np.minimum(min_distance_bk_des / dist_ui_destination, 1)
 
-            # state[neighbor.identifier] = (
-            state[neighbor.identifier] = (
+            if dist_ui_destination == 0:
+                dist_bj_destination = 0
+                min_distance_bk_des = 0
+            else:
+                dist_bj_destination = np.minimum(dist_bj_destination / dist_ui_destination, 1)
+                min_distance_bk_des = np.minimum(min_distance_bk_des / dist_ui_destination, 1)
+
+            state[neighbor.identifier] = [
                 connection_time,
                 packet_error_ratio,
                 remaining_energy,
@@ -225,14 +229,12 @@ class ARDeepLearningRouting(BASE_routing):
 
     def update_next_state(self, list_neighbors):
 
-        state = self.get_current_state(list_neighbors)
-        next_state = [state[drone.identifier] if drone in list_neighbors else 0 for drone in self.simulator.drones]
+        next_state = self.get_current_state(list_neighbors)
 
         for event_id in self.taken_actions.keys():
             if self.taken_actions[event_id][2] is None:
-                if len(list_neighbors) > 0:
-                    prev_state, chosen_action, ns = self.taken_actions[event_id]
-                    self.taken_actions[event_id] = (prev_state, chosen_action, next_state)
+                prev_state, chosen_action, ns = self.taken_actions[event_id]
+                self.taken_actions[event_id] = (prev_state, chosen_action, next_state)
 
     def feedback(self, drone, id_event, delay, outcome):
         """
@@ -244,16 +246,6 @@ class ARDeepLearningRouting(BASE_routing):
         @param outcome: -1 or 1 (read below)
         @return:
         """
-        if id_event in self.taken_actions:
-            # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
-            # TIPS: implement here the q-table updating process
-            # Drone id and Taken actions
-
-            state, action, next_state = self.taken_actions[id_event]
-
-            if next_state is None and outcome == 1:
-                print("paperino")
-        return
         # outcome can be:
         #   -1 if the packet/event expired;
         #    1 if the packets has been delivered to the depot
@@ -268,6 +260,12 @@ class ARDeepLearningRouting(BASE_routing):
 
             state, action, next_state = self.taken_actions[id_event]
 
+            # todo remove me
+            if next_state is None:
+                self.simulator.ns_none += 1
+            else:
+                self.simulator.ns_filled += 1
+
             # todo rivedere il calcolo del local minimum
             local_minimum = True
             for neighbor_state in state:
@@ -275,7 +273,7 @@ class ARDeepLearningRouting(BASE_routing):
                 if neighbor_state is not 0 and neighbor_state[3] < 1:
                     local_minimum = False
 
-            state = state[action]
+            chosen_state = state[action.identifier]
 
             """
             REWARD FUNCTION
@@ -286,15 +284,16 @@ class ARDeepLearningRouting(BASE_routing):
             # when neighbor bj is the destination
             if outcome == 1:  # todo check
                 reward = self.R_max
-            # when neighbor bj is the local minimum (all neighbors of node ui are further away from the destination than node ui)
+            # when neighbor bj is the local minimum
+            # (all neighbors of node ui are further away from the destination than node ui)
             elif local_minimum is True:
                 reward = - self.R_max
             else:
                 dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
-                dist_bj_destination = util.euclidean_distance(action.coord, self.drone.depot.coords)
-                connection_time = state[0]
-                packet_error_ratio = state[1]
-                remaining_energy = state[2]
+                dist_bj_destination = util.euclidean_distance(action.coords, self.drone.depot.coords)
+                connection_time = chosen_state[0]
+                packet_error_ratio = chosen_state[1]
+                remaining_energy = chosen_state[2]
 
                 if connection_time >= self.connection_time_min:
                     beta = 1
@@ -306,7 +305,7 @@ class ARDeepLearningRouting(BASE_routing):
                 reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
 
             # save sample in experience replay memory
-            self.memory.push(state, action, next_state, reward)
+            self.simulator.memory.push(state, action.identifier, next_state, reward)
 
             # remove the entry, the action has received the feedback
             del self.taken_actions[id_event]
@@ -320,15 +319,11 @@ class ARDeepLearningRouting(BASE_routing):
         """
 
         list_neighbors = [n[1] for n in opt_neighbors]
+
         state = self.get_current_state(list_neighbors)
-
-        # build the tuple with each state starting from the complete list of drones
-        # i.e. [0, (...state...), 0, 0, (...state...) ]
-        complete_state = [state[drone.identifier] if drone in list_neighbors else 0 for drone in self.simulator.drones]
-
-        chosen_action = None  # self.select_action(complete_state, opt_neighbors)
+        chosen_action = self.select_action(state, opt_neighbors)
 
         # store in taken actions
-        self.taken_actions[packet.event_ref.identifier] = (complete_state, chosen_action, None)  # .identifier, None)
+        self.taken_actions[packet.event_ref.identifier] = (state, chosen_action, None)
 
-        return None  # chosen_action
+        return chosen_action

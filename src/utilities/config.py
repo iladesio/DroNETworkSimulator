@@ -41,6 +41,8 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 # current data -> sim_duration: 180_000 n_drones: 5
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
 
+REPLAY_MEMORY_JSON = "data/ar-deep/replay_memory.json"
+
 DEBUG = False  # bool: whether to print debug strings or not.
 EXPERIMENTS_DIR = "data/evaluation_tests/"  # output data : the results of the simulation
 

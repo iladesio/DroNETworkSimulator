@@ -457,12 +457,10 @@ def save_connection_time_data(drones):
     connection_time_data = {}
     for drone in drones:
         for nb_key in drone.neighbor_connection_time.keys():
-            print(nb_key)
             if drone.neighbor_connection_time[nb_key] and drone.neighbor_connection_time[nb_key][-1][1] is None:
                 drone.neighbor_connection_time[nb_key][-1][1] = config.SIM_DURATION
 
         connection_time_data[drone.identifier] = drone.neighbor_connection_time
-    print(connection_time_data)
 
     with open(config.CONNECTION_TIME_JSON, 'w') as out:
         json.dump(connection_time_data, out)
@@ -485,6 +483,10 @@ def get_max_connection_time(drones):
         return max_conn_time
     else:
         return config.CONNECTION_TIME_MAX
+
+
+def most_frequent_list(nums):
+    return sorted(set(nums), key=nums.count)[::-1]
 
 
 if __name__ == "__main__":

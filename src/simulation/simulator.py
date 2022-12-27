@@ -6,10 +6,10 @@ from tqdm import tqdm
 
 from src.drawing import pp_draw
 from src.entities.uav_entities import *
+from src.routing_algorithms.deep_ql.replay_memory import ReplayMemory
 from src.routing_algorithms.net_routing import MediumDispatcher
 from src.simulation.metrics import Metrics
 from src.utilities import config, utilities
-from src.utilities.config import RoutingAlgorithm
 
 """
 This file contains the Simulation class. It allows to explicit all the relevant parameters of the simulation,
@@ -97,6 +97,11 @@ class Simulator:
         self.event_generator = utilities.EventGenerator(self)
 
         self.connection_time_max = utilities.get_max_connection_time(self.drones)
+
+        self.memory = ReplayMemory(10000)
+
+        self.ns_none = 0
+        self.ns_filled = 0
 
     def __setup_net_dispatcher(self):
         self.network_dispatcher = MediumDispatcher(self.metrics)
@@ -230,13 +235,13 @@ class Simulator:
                 if drone.residual_energy == 0:
                     drone.residual_energy = self.drone_max_energy
 
-            if self.routing_algorithm.name == RoutingAlgorithm.ARDEEP_QL.name and cur_step % 1000 == 0:
-
-                # get and store next state of every drones
+            # todo da rivedere
+            if cur_step % 1 == 0:
                 for drone in self.drones:
-                    neighbours = [n[0] for n in drone.get_neighbours()]
-                    drone.all_packets()
-                    drone.routing_algorithm.update_next_state(neighbours)
+                    list_neighbors = [d[0] for d in drone.get_neighbours()]
+
+                    # get next state
+                    drone.routing_algorithm.update_next_state(list_neighbors)
 
             # in case we need probability map
             if config.ENABLE_PROBABILITIES:
@@ -254,6 +259,15 @@ class Simulator:
     def close(self):
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
+
+        print("self.ns_none", self.ns_none)
+        print("self.ns_filled", self.ns_filled)
+
+        print("Len: ", len(self.memory))
+
+        # todo da capire
+        # with open(config.REPLAY_MEMORY_JSON, 'w') as out:
+        #    json.dump(self.memory.get_json(), out)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project

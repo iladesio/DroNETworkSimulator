@@ -200,7 +200,7 @@ class BASE_routing(metaclass=abc.ABCMeta):
         # todo: decrease the drone's energy when it sends a packet
         self.drone.residual_energy -= 1  # todo: di quanto diminuire
         # when the drone runs out of energy we reset it
-        if self.drone.residual_energy == 0:
+        if self.drone.residual_energy <= 0:
             self.drone.residual_energy = self.simulator.drone_max_energy
 
     def gaussian_success_handler(self, drones_distance):
