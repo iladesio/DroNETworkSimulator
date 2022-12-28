@@ -1,5 +1,7 @@
 from enum import Enum
 
+import torch
+
 from src.routing_algorithms.ar_deep_routing import ARDeepLearningRouting
 from src.routing_algorithms.georouting import GeoRouting
 from src.routing_algorithms.q_learning_direction import QLearningRoutingDirection
@@ -40,7 +42,7 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 # AR_DEEP constants
 # current data -> sim_duration: 180_000 n_drones: 5
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
-
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 REPLAY_MEMORY_JSON = "data/ar-deep/replay_memory.json"
 
 DEBUG = False  # bool: whether to print debug strings or not.

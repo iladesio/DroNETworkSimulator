@@ -103,6 +103,8 @@ class Simulator:
         self.ns_none = 0
         self.ns_filled = 0
 
+        print("Device: ", config.DEVICE)
+
     def __setup_net_dispatcher(self):
         self.network_dispatcher = MediumDispatcher(self.metrics)
 

@@ -73,8 +73,11 @@ network). In effect, the network is trying to predict the *expected return* of
 taking each action given the current input.
 
 """
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from src.utilities import config
 
 
 class DQN(nn.Module):
@@ -90,4 +93,23 @@ class DQN(nn.Module):
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = self.layer3(x)
+        x = F.softmax(torch.masked_fill(x, mask == 0, float('-inf')), dim=0)
+        return x
+
+    def get_mask(self, x):
+        x = torch.Tensor(x)
+        mask = []
+        for statino in x:
+            if torch.sum(statino).item() == 0.:
+                mask.append(0)
+            else:
+                mask.append(1)
+        return torch.Tensor(mask)
+
+    def get_unified_state(self, x):
+        unified_state = []
+        for statino in x:
+            unified_state = unified_state + statino
+
+        return torch.Tensor(unified_state)

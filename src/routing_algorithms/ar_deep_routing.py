@@ -3,14 +3,13 @@ import random
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy
 import numpy as np
 import torch
 import torch.optim as optim
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.routing_algorithms.deep_ql.dqn import DQN
-from src.utilities import utilities as util
+from src.utilities import utilities as util, config
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -18,10 +17,6 @@ if is_ipython:
     from IPython import display
 
 plt.ion()
-
-# if gpu is to be used
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Device: ", device)  # todo remove me
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -74,8 +69,8 @@ class ARDeepLearningRouting(BASE_routing):
         self.n_observations = self.simulator.n_drones  # todo da vedere
 
         # todo check number of layers of dqn
-        self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(device)
-        self.target_net = DQN(self.n_observations * 5, self.n_actions).to(device)
+        self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
+        self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
@@ -92,20 +87,8 @@ class ARDeepLearningRouting(BASE_routing):
                 # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-
-                unified_state = []
-                for statino in state:
-                    unified_state = unified_state + statino
-
-                results = self.policy_net(torch.Tensor(unified_state)).tolist()
-                neighbors_identifiers = numpy.argsort(results)[::-1]
-
-                nb = [n[1].identifier for n in opt_neighbors]
-                for i in neighbors_identifiers:
-                    if i in nb:
-                        return self.simulator.drones[i]
-                    elif i is self.drone.identifier:
-                        return self.drone
+                results = self.policy_net(state)
+                return self.simulator.drones[torch.argmax(results).item()]
 
         else:
             # Explore - choose a random drone
@@ -371,4 +354,4 @@ class ARDeepLearningRouting(BASE_routing):
         # store in taken actions
         self.taken_actions[packet.event_ref.identifier] = (state, chosen_action, None)
 
-        return chosen_action
+        return None if chosen_action.identifier == self.drone.identifier else chosen_action
