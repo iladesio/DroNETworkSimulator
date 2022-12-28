@@ -238,7 +238,7 @@ class Simulator:
                     drone.residual_energy = self.drone_max_energy
 
             # todo da rivedere
-            if cur_step % 1 == 0:
+            if cur_step % 1 == 0 and self.routing_algorithm.name == "ARDEEP_QL":
                 for drone in self.drones:
                     list_neighbors = [d[0] for d in drone.get_neighbours()]
 

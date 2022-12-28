@@ -91,6 +91,8 @@ class DQN(nn.Module):
     # Called with either one element to determine next action, or a batch during optimization.
     # Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
+        mask = self.get_mask(x).to(config.DEVICE)
+        x = self.get_unified_state(x).to(config.DEVICE)
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = self.layer3(x)
