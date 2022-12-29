@@ -92,22 +92,29 @@ class DQN(nn.Module):
     # Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         mask = self.get_mask(x).to(config.DEVICE)
-        x = self.get_unified_state(x).to(config.DEVICE)
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = self.layer3(x)
-        x = F.softmax(torch.masked_fill(x, mask == 0, float('-inf')), dim=0)
-        return x
+        result = F.softmax(torch.masked_fill(x, mask == 0, float('-inf')), dim=1)
+        return result
 
     def get_mask(self, x):
-        x = torch.Tensor(x)
-        mask = []
-        for statino in x:
-            if torch.sum(statino).item() == 0.:
-                mask.append(0)
-            else:
-                mask.append(1)
-        return torch.Tensor(mask)
+        complete_mask = []
+
+        for riga in x:
+            mask = []
+
+            splitted_tensors = torch.split(riga, 5)
+
+            for statino in splitted_tensors:
+                if torch.sum(statino).item() == 0.:
+                    mask.append(0)
+                else:
+                    mask.append(1)
+
+            complete_mask.append(mask)
+
+        return torch.Tensor(complete_mask)
 
     def get_unified_state(self, x):
         unified_state = []

@@ -108,7 +108,6 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                 opt_neighbors.append((hpk, hpk.src_drone))
 
-                # todo calculation of connection time
                 id_drone = hpk.src_drone.identifier
                 conn_time_history = self.drone.neighbor_connection_time[id_drone]
 

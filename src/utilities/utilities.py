@@ -450,8 +450,10 @@ def read_connection_time_values(drone_identifier):
     with open(config.CONNECTION_TIME_JSON, 'r') as in_file:
         data = json.load(in_file)
 
-    return data[str(drone_identifier)]
-
+    if str(drone_identifier) in data.keys():
+        return data[str(drone_identifier)]
+    else:
+        return {}
 
 def save_connection_time_data(drones):
     connection_time_data = {}
@@ -471,12 +473,14 @@ def get_max_connection_time(drones):
     for drone in drones:
         data[drone.identifier] = read_connection_time_values(drone.identifier)
 
-    if len(data.keys()) > 0:
+    if config.USE_CONNECTION_TIME_DATA and len(data.keys()) > 0:
         max_conn_time = 0
 
         for d in data.values():
             for i in d.values():
-                if i:
+                if not i:
+                    pass
+                else:
                     for value in i:
                         if value[1] - value[0] > max_conn_time:
                             max_conn_time = value[1] - value[0]

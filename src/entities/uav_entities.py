@@ -246,7 +246,6 @@ class Drone(Entity):
         # - when it sends a packet to a neighbor
         self.residual_energy = self.simulator.drone_max_energy
 
-        # todo to calculate connection_time_max
         self.nb_connection_time = utilities.read_connection_time_values(self.identifier)
         self.neighbor_connection_time = {}
 
@@ -272,6 +271,7 @@ class Drone(Entity):
         # last mission coord to restore the mission after movement
         self.last_mission_coords = None
 
+        self.next_target_history = []
     def update_packets(self, cur_step):
         """
         Removes the expired packets from the buffer
@@ -493,7 +493,8 @@ class Drone(Entity):
             p1 = self.path[self.current_waypoint]
             p2 = self.next_target()
 
-            # todo controllare che salvi i valori corretti
+            self.next_target_history.append(p1)
+
             state = utilities.map_angle_to_state(utilities.get_angle_degree(p1, p2))
 
             self.state_history.append(state)

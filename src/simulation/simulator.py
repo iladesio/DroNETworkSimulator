@@ -2,11 +2,15 @@ import math
 import time
 from collections import defaultdict
 
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from tqdm import tqdm
 
 from src.drawing import pp_draw
 from src.entities.uav_entities import *
-from src.routing_algorithms.deep_ql.replay_memory import ReplayMemory
+from src.routing_algorithms.deep_ql.dqn import DQN
+from src.routing_algorithms.deep_ql.replay_memory import ReplayMemory, Transition
 from src.routing_algorithms.net_routing import MediumDispatcher
 from src.simulation.metrics import Metrics
 from src.utilities import config, utilities
@@ -16,6 +20,11 @@ This file contains the Simulation class. It allows to explicit all the relevant 
 as default all the parameters are set to be those in the config file. For extensive experimental campains, 
 you can initialize the Simulator with non default values. 
 """
+
+LR = 1e-4
+BATCH_SIZE = 128
+GAMMA = 0.99
+TAU = 0.005
 
 
 class Simulator:
@@ -44,7 +53,6 @@ class Simulator:
                  routing_algorithm=config.ROUTING_ALGORITHM,
                  communication_error_type=config.CHANNEL_ERROR_TYPE,
                  prob_size_cell_r=config.CELL_PROB_SIZE_R,
-                 connection_time_max=config.CONNECTION_TIME_MAX,
                  simulation_name=""):
         self.cur_step = None
         self.drone_com_range = drone_com_range
@@ -70,6 +78,7 @@ class Simulator:
         self.show_plot = show_plot
         self.routing_algorithm = routing_algorithm
         self.communication_error_type = communication_error_type
+        self.max_connection_time = None
 
         # --------------- cell for drones -------------
         self.prob_size_cell_r = prob_size_cell_r
@@ -96,12 +105,22 @@ class Simulator:
         self.start = time.time()
         self.event_generator = utilities.EventGenerator(self)
 
-        self.connection_time_max = utilities.get_max_connection_time(self.drones)
+        if self.routing_algorithm.name == "ARDEEP_QL":
+            self.n_actions = self.n_drones
+            self.n_observations = self.n_drones
 
-        self.memory = ReplayMemory(10000)
+            self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
 
-        self.ns_none = 0
-        self.ns_filled = 0
+            # get model from the file
+            if config.READ_MODEL_DICT:
+                self.policy_net.load_state_dict(torch.load(config.MODEL_STATE_DICT_PATH))
+                self.policy_net.eval()
+
+            self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+            self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
+            self.memory = ReplayMemory(10000)
 
         print("Device: ", config.DEVICE)
 
@@ -209,6 +228,8 @@ class Simulator:
         @return: None
         """
 
+        self.max_connection_time = utilities.get_max_connection_time(self.drones)
+
         for cur_step in tqdm(range(self.len_simulation)):
 
             self.cur_step = cur_step
@@ -238,7 +259,7 @@ class Simulator:
                     drone.residual_energy = self.drone_max_energy
 
             # todo da rivedere
-            if cur_step % 1 == 0 and self.routing_algorithm.name == "ARDEEP_QL":
+            if cur_step % self.drone_retransmission_delta == 0 and self.routing_algorithm.name == "ARDEEP_QL":
                 for drone in self.drones:
                     list_neighbors = [d[0] for d in drone.get_neighbours()]
 
@@ -252,7 +273,8 @@ class Simulator:
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
 
-        utilities.save_connection_time_data(self.drones)
+        if config.SAVE_CONNECTION_TIME_DATA:
+            utilities.save_connection_time_data(self.drones)
 
         if config.DEBUG:
             print("End of simulation, sim time: " + str(
@@ -262,14 +284,74 @@ class Simulator:
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
 
-        print("self.ns_none", self.ns_none)
-        print("self.ns_filled", self.ns_filled)
+        print("Len memory: ", len(self.memory))
 
-        print("Len: ", len(self.memory))
-
-        # todo da capire
+        # salvare solo per colab
         # with open(config.REPLAY_MEMORY_JSON, 'w') as out:
         #    json.dump(self.memory.get_json(), out)
+
+        """ TRAINING MODEL """
+        if self.routing_algorithm.name == "ARDEEP_QL":
+            for k in range(config.N_TRAINING_STEPS):
+                # Perform one step of the optimization (on the policy network)
+                if len(self.memory) < BATCH_SIZE:
+                    return
+                transitions = self.memory.sample(BATCH_SIZE)
+                # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+                # detailed explanation). This converts batch-array of Transitions
+                # to Transition of batch-arrays.
+                batch = Transition(*zip(*transitions))
+
+                # Compute a mask of non-final states and concatenate the batch elements
+                # (a final state would've been the one after which simulation ended)
+                non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)),
+                                              device=config.DEVICE,
+                                              dtype=torch.bool)
+                non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+                state_batch = torch.cat(batch.state)
+                action_batch = torch.cat(batch.action)
+                reward_batch = torch.cat(batch.reward)
+
+                # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+                # columns of actions taken. These are the actions which would've been taken
+                # for each batch state according to policy_net
+                state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+                # Compute V(s_{t+1}) for all next states.
+                # Expected values of actions for non_final_next_states are computed based
+                # on the "older" target_net; selecting their best reward with max(1)[0].
+                # This is merged based on the mask, such that we'll have either the expected
+                # state value or 0 in case the state was final.
+                next_state_values = torch.zeros(BATCH_SIZE, device=config.DEVICE)
+                with torch.no_grad():
+                    next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+                # Compute the expected Q values
+                expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+
+                # Compute Huber loss
+                criterion = nn.SmoothL1Loss()
+                loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+                # Optimize the model
+                self.optimizer.zero_grad()
+                loss.backward()
+                # In-place gradient clipping
+                torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+                self.optimizer.step()
+
+                # Soft update of the target network's weights
+                # θ′ ← τ θ + (1 −τ )θ′
+                target_net_state_dict = self.target_net.state_dict()
+                policy_net_state_dict = self.policy_net.state_dict()
+                for key in policy_net_state_dict:
+                    target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (
+                            1 - TAU)
+
+                self.target_net.load_state_dict(target_net_state_dict)
+
+            # save the model
+            if config.SAVE_MODEL_DICT:
+                torch.save(self.target_net.state_dict(), config.MODEL_STATE_DICT_PATH)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project

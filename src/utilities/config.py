@@ -39,11 +39,22 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 
 # ------------------------------- CONSTANTS ------------------------------- #
 
-# AR_DEEP constants
-# current data -> sim_duration: 180_000 n_drones: 5
+""" ---------------- AR_DEEP constants ---------------- """
+N_TRAINING_STEPS = 500
+# current data -> sim_duration: 200_000 n_drones: 20
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# output file path of the ReplayMemory
 REPLAY_MEMORY_JSON = "data/ar-deep/replay_memory.json"
+
+SAVE_MODEL_DICT = True  # bool: save model dict after training
+READ_MODEL_DICT = False  # bool: save model dict after training
+# file path of the model (saved after training and read before run the simulation)
+MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
+
+SAVE_CONNECTION_TIME_DATA = True  # bool: save connection time data to the file
+USE_CONNECTION_TIME_DATA = True  # bool: read connection time data from the file
 
 DEBUG = False  # bool: whether to print debug strings or not.
 EXPERIMENTS_DIR = "data/evaluation_tests/"  # output data : the results of the simulation
@@ -61,34 +72,12 @@ SAVE_PLOT_DIR = "data/plots/"
 # add constants here...
 
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 18000  # int: steps of simulation. # ***
+SIM_DURATION = 50_000  # int: steps of simulation. # ***
 TS_DURATION = 0.150  # float: seconds duration of a step in seconds.
 SEED = 10  # int: seed of this simulation.
 
-N_DRONES = 5  # int: number of drones. # ***
-CONNECTION_TIME_MAX = 500
-"""
-# todo With those missions:
-if N_DRONES == 5:
-    CONNECTION_TIME_MAX = 500
-elif N_DRONES == 10:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 15:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 20:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 25:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 30:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 35:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 40:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 45:
-    CONNECTION_TIME_MAX = None
-elif N_DRONES == 50:
-    CONNECTION_TIME_MAX = None"""
+N_DRONES = 10  # int: number of drones. # ***
+CONNECTION_TIME_MAX = SIM_DURATION  # default value when we don't have data
 
 ENV_WIDTH = 1500  # float: meters, width of environment.
 ENV_HEIGHT = 1500  # float: meters, height of environment.

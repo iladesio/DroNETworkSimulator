@@ -5,10 +5,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.optim as optim
 
 from src.routing_algorithms.BASE_routing import BASE_routing
-from src.routing_algorithms.deep_ql.dqn import DQN
 from src.utilities import utilities as util, config
 
 # set up matplotlib
@@ -65,16 +63,6 @@ class ARDeepLearningRouting(BASE_routing):
         # example parameters
         self.episode_durations = []
 
-        self.n_actions = self.simulator.n_drones  # todo da vedere
-        self.n_observations = self.simulator.n_drones  # todo da vedere
-
-        # todo check number of layers of dqn
-        self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
-        self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
-
-        self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
-
     def select_action(self, state, opt_neighbors):
         # Strategy: Epsilon-Greedy
         # Decide if the agent should explore or exploit using epsilon
@@ -87,7 +75,7 @@ class ARDeepLearningRouting(BASE_routing):
                 # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                results = self.policy_net(state)
+                results = self.simulator.policy_net(state)
                 return self.simulator.drones[torch.argmax(results).item()]
 
         else:
@@ -119,53 +107,6 @@ class ARDeepLearningRouting(BASE_routing):
             else:
                 display.display(plt.gcf())
 
-    # todo colab
-    # def optimize_model(self):
-    #     if len(memory) < BATCH_SIZE:
-    #         return
-    #     transitions = memory.sample(BATCH_SIZE)
-    #     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    #     # detailed explanation). This converts batch-array of Transitions
-    #     # to Transition of batch-arrays.
-    #     batch = Transition(*zip(*transitions))
-    #
-    #     # Compute a mask of non-final states and concatenate the batch elements
-    #     # (a final state would've been the one after which simulation ended)
-    #     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-    #                                             batch.next_state)), device=device, dtype=torch.bool)
-    #     non_final_next_states = torch.cat([s for s in batch.next_state
-    #                                        if s is not None])
-    #     state_batch = torch.cat(batch.state)
-    #     action_batch = torch.cat(batch.action)
-    #     reward_batch = torch.cat(batch.reward)
-    #
-    #     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-    #     # columns of actions taken. These are the actions which would've been taken
-    #     # for each batch state according to policy_net
-    #     state_action_values = policy_net(state_batch).gather(1, action_batch)
-    #
-    #     # Compute V(s_{t+1}) for all next states.
-    #     # Expected values of actions for non_final_next_states are computed based
-    #     # on the "older" target_net; selecting their best reward with max(1)[0].
-    #     # This is merged based on the mask, such that we'll have either the expected
-    #     # state value or 0 in case the state was final.
-    #     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    #     with torch.no_grad():
-    #         next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0]
-    #     # Compute the expected Q values
-    #     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    #
-    #     # Compute Huber loss
-    #     criterion = nn.SmoothL1Loss()
-    #     loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-    #
-    #     # Optimize the model
-    #     optimizer.zero_grad()
-    #     loss.backward()
-    #     # In-place gradient clipping
-    #     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
-    #     optimizer.step()
-
     def get_current_state(self, list_drones):
         state = {}
 
@@ -173,10 +114,15 @@ class ARDeepLearningRouting(BASE_routing):
 
         for neighbor in list_drones:
             # expected connection time of the link
-            for c in self.drone.nb_connection_time[str(neighbor.identifier)]:
-                if c[0] <= self.simulator.cur_step <= c[1]:
-                    connection_time = c[1] - self.simulator.cur_step
-                    break
+            if config.USE_CONNECTION_TIME_DATA and str(neighbor.identifier) in self.drone.nb_connection_time.keys():
+
+                for c in self.drone.nb_connection_time[str(neighbor.identifier)]:
+                    if c[0] <= self.simulator.cur_step <= c[1]:
+                        connection_time = c[1] - self.simulator.cur_step
+                        break
+            else:
+                # value generated randomly
+                connection_time = int(random.uniform(0, self.simulator.max_connection_time))
 
             # Packet Error Ratio of the link - generated randomly between 0 and 0.2
             packet_error_ratio = random.uniform(0, 0.2)
@@ -202,7 +148,7 @@ class ARDeepLearningRouting(BASE_routing):
             #               d_min)          minimum distance between a two hop neighbor bk and des
 
             # Normalization in range [0, 1] of all the elements of the state
-            connection_time = connection_time / self.max_conn_time
+            connection_time = connection_time / self.simulator.max_connection_time
             remaining_energy = remaining_energy / self.simulator.drone_max_energy
             dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
 
@@ -288,12 +234,6 @@ class ARDeepLearningRouting(BASE_routing):
 
             state, action, next_state = self.taken_actions[id_event]
 
-            # todo remove me
-            if next_state is None:
-                self.simulator.ns_none += 1
-            else:
-                self.simulator.ns_filled += 1
-
             # todo rivedere il calcolo del local minimum
             local_minimum = True
             for neighbor_state in state:
@@ -317,8 +257,8 @@ class ARDeepLearningRouting(BASE_routing):
             elif local_minimum is True:
                 reward = - self.R_max
             else:
-                dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
-                dist_bj_destination = util.euclidean_distance(action.coords, self.drone.depot.coords)
+                dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
+                dist_bj_destination = util.euclidean_distance(action.coords, self.simulator.depot_coordinates) + 0.001
                 connection_time = chosen_state[0]
                 packet_error_ratio = chosen_state[1]
                 remaining_energy = chosen_state[2]
