@@ -48,9 +48,6 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.omega = 0  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
-        # Constants used in normalization of states
-        self.max_conn_time = 500  # simulator.connection_time_max todo da risolvere errore
-
         self.R_max = 2
 
         self.connection_time_min = 6  # 1 sec
@@ -238,7 +235,7 @@ class ARDeepLearningRouting(BASE_routing):
             local_minimum = True
             for neighbor_state in state:
                 # state[3] is dist_bj_destination
-                if neighbor_state is not 0 and neighbor_state[3] < 1:
+                if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
                     local_minimum = False
 
             chosen_state = state[action.identifier]
@@ -273,7 +270,16 @@ class ARDeepLearningRouting(BASE_routing):
                 reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
 
             # save sample in experience replay memory
-            self.simulator.memory.push(state, action.identifier, next_state, reward)
+
+            state = torch.Tensor(state).to(config.DEVICE)
+            next_state = torch.Tensor(next_state).to(config.DEVICE)
+
+            state = torch.reshape(state, (1, self.simulator.n_observations * 5))
+            next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
+
+            self.simulator.memory.push(state,
+                                       torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
+                                       next_state, torch.Tensor([reward]).to(config.DEVICE))
 
             # remove the entry, the action has received the feedback
             del self.taken_actions[id_event]
@@ -289,7 +295,11 @@ class ARDeepLearningRouting(BASE_routing):
         list_neighbors = [n[1] for n in opt_neighbors]
 
         state = self.get_current_state(list_neighbors)
-        chosen_action = self.select_action(state, opt_neighbors)
+
+        state_tensor = torch.Tensor(state).to(config.DEVICE)
+        state_tensor = torch.reshape(state_tensor, (1, self.simulator.n_observations * 5))  # .squeeze()
+
+        chosen_action = self.select_action(state_tensor, opt_neighbors)
 
         # store in taken actions
         self.taken_actions[packet.event_ref.identifier] = (state, chosen_action, None)
