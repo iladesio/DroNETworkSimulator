@@ -40,7 +40,7 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 # ------------------------------- CONSTANTS ------------------------------- #
 
 """ ---------------- AR_DEEP constants ---------------- """
-N_TRAINING_STEPS = 500
+N_TRAINING_STEPS = 250
 # current data -> sim_duration: 200_000 n_drones: 20
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +49,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 REPLAY_MEMORY_JSON = "data/ar-deep/replay_memory.json"
 
 SAVE_MODEL_DICT = True  # bool: save model dict after training
-READ_MODEL_DICT = False  # bool: save model dict after training
+READ_MODEL_DICT = True  # bool: save model dict after training
 # file path of the model (saved after training and read before run the simulation)
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
 
@@ -72,7 +72,7 @@ SAVE_PLOT_DIR = "data/plots/"
 # add constants here...
 
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 50_000  # int: steps of simulation. # ***
+SIM_DURATION = 200_000  # int: steps of simulation. # ***
 TS_DURATION = 0.150  # float: seconds duration of a step in seconds.
 SEED = 10  # int: seed of this simulation.
 

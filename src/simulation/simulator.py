@@ -1,6 +1,7 @@
 import math
 import time
 from collections import defaultdict
+from timeit import default_timer as timer
 
 import torch
 import torch.nn as nn
@@ -292,6 +293,8 @@ class Simulator:
 
         """ TRAINING MODEL """
         if self.routing_algorithm.name == "ARDEEP_QL":
+            print("Start training: ", timer())
+
             for k in range(config.N_TRAINING_STEPS):
                 # Perform one step of the optimization (on the policy network)
                 if len(self.memory) < BATCH_SIZE:
