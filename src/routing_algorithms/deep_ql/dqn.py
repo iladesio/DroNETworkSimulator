@@ -115,10 +115,3 @@ class DQN(nn.Module):
             complete_mask.append(mask)
 
         return torch.Tensor(complete_mask)
-
-    def get_unified_state(self, x):
-        unified_state = []
-        for statino in x:
-            unified_state = unified_state + statino
-
-        return torch.Tensor(unified_state)
