@@ -1,7 +1,7 @@
 import math
 import time
 from collections import defaultdict
-from timeit import default_timer as timer
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -80,6 +80,7 @@ class Simulator:
         self.routing_algorithm = routing_algorithm
         self.communication_error_type = communication_error_type
         self.max_connection_time = None
+        self.sim_metrics = {}
 
         # --------------- cell for drones -------------
         self.prob_size_cell_r = prob_size_cell_r
@@ -228,7 +229,6 @@ class Simulator:
         Simulator main function
         @return: None
         """
-
         self.max_connection_time = utilities.get_max_connection_time(self.drones)
 
         for cur_step in tqdm(range(self.len_simulation)):
@@ -281,19 +281,10 @@ class Simulator:
             print("End of simulation, sim time: " + str(
                 (cur_step + 1) * self.time_step_duration) + " sec, #iteration: " + str(cur_step + 1))
 
-    def close(self):
-        """ do some stuff at the end of simulation"""
-        print("Closing simulation")
-
-        print("Len memory: ", len(self.memory))
-
-        # salvare solo per colab
-        # with open(config.REPLAY_MEMORY_JSON, 'w') as out:
-        #    json.dump(self.memory.get_json(), out)
+    def optimize_model(self):
 
         """ TRAINING MODEL """
         if self.routing_algorithm.name == "ARDEEP_QL":
-            print("Start training: ", timer())
 
             for k in range(config.N_TRAINING_STEPS):
                 # Perform one step of the optimization (on the policy network)
@@ -356,9 +347,30 @@ class Simulator:
             if config.SAVE_MODEL_DICT:
                 torch.save(self.target_net.state_dict(), config.MODEL_STATE_DICT_PATH)
 
+    def close(self):
+        """ do some stuff at the end of simulation"""
+        print("Closing simulation")
+        print("Len memory: ", len(self.memory))
+
+        # salvare solo per colab
+        # with open(config.REPLAY_MEMORY_JSON, 'w') as out:
+        #    json.dump(self.memory.get_json(), out)
+
+        if config.TRAIN_MODEL and self.routing_algorithm.name == "ARDEEP_QL":
+            self.sim_metrics["start_train_time"] = datetime.now().strftime("%H:%M:%S")
+            self.optimize_model()
+            self.sim_metrics["end_train_time"] = datetime.now().strftime("%H:%M:%S")
+
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
         # self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
+
+    def get_metrics(self):
+        self.sim_metrics.update(self.metrics.get_metrics())
+
+        self.sim_metrics["len memory"] = len(self.memory)
+
+        return self.sim_metrics
 
     def print_metrics(self, plot_id="final"):
         """ add signature """

@@ -188,6 +188,7 @@ class ARDeepLearningRouting(BASE_routing):
         complete_state = [state[drone.identifier] if drone in list_drones else [0, 0, 0, 0, 0] for drone in
                           self.simulator.drones]
 
+        # setting current drone link with itself in the state
         complete_state[self.drone.identifier] = [
             connection_time,
             packet_error_ratio,
@@ -231,58 +232,66 @@ class ARDeepLearningRouting(BASE_routing):
 
             state, action, next_state = self.taken_actions[id_event]
 
-            # todo rivedere il calcolo del local minimum
-            local_minimum = True
-            for neighbor_state in state:
-                # state[3] is dist_bj_destination
-                if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
-                    local_minimum = False
-
-            chosen_state = state[action.identifier]
-
-            """
-            REWARD FUNCTION
-             Rmax, when neighbor bj is the destination
-            −Rmax, when neighbor bj is the local minimum
-             ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
-            """
-            # when neighbor bj is the destination
-            if outcome == 1:  # todo check
-                reward = self.R_max
-            # when neighbor bj is the local minimum
-            # (all neighbors of node ui are further away from the destination than node ui)
-            elif local_minimum is True:
-                reward = - self.R_max
+            # error check
+            if next_state is None:
+                print("NEXT STATE NONE")
+                # remove the entry, the action has received the feedback
+                del self.taken_actions[id_event]
             else:
-                dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
-                dist_bj_destination = util.euclidean_distance(action.coords, self.simulator.depot_coordinates) + 0.001
-                connection_time = chosen_state[0]
-                packet_error_ratio = chosen_state[1]
-                remaining_energy = chosen_state[2]
+                # todo rivedere il calcolo del local minimum
+                local_minimum = True
+                for neighbor_state in state:
+                    # state[3] is dist_bj_destination
+                    if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
+                        local_minimum = False
 
-                if connection_time >= self.connection_time_min:
-                    beta = 1
+                chosen_state = state[action.identifier]
+
+                """
+                REWARD FUNCTION
+                 Rmax, when neighbor bj is the destination
+                −Rmax, when neighbor bj is the local minimum
+                 ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
+                """
+                # when neighbor bj is the destination
+                if outcome == 1:  # todo check
+                    reward = self.R_max
+                # when neighbor bj is the local minimum
+                # (all neighbors of node ui are further away from the destination than node ui)
+                elif local_minimum is True:
+                    reward = - self.R_max
                 else:
-                    beta = 0
+                    dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
+                    dist_bj_destination = util.euclidean_distance(action.coords,
+                                                                  self.simulator.depot_coordinates) + 0.001
+                    connection_time = chosen_state[0]
+                    packet_error_ratio = chosen_state[1]
+                    remaining_energy = chosen_state[2]
 
-                D_ui_bj = dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
+                    if connection_time >= self.connection_time_min:
+                        beta = 1
+                    else:
+                        beta = 0
 
-                reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
+                    D_ui_bj = dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
 
-            # save sample in experience replay memory
+                    reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
 
-            state = torch.Tensor(state).to(config.DEVICE)
-            next_state = torch.Tensor(next_state).to(config.DEVICE)
+                """ save sample in experience ReplayMemory """
 
-            state = torch.reshape(state, (1, self.simulator.n_observations * 5))
-            next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
+                state = torch.Tensor(state).to(config.DEVICE)
 
-            self.simulator.memory.push(state,
-                                       torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
-                                       next_state, torch.Tensor([reward]).to(config.DEVICE))
+                next_state = torch.Tensor(next_state).to(config.DEVICE)
 
-            # remove the entry, the action has received the feedback
-            del self.taken_actions[id_event]
+                state = torch.reshape(state, (1, self.simulator.n_observations * 5))
+                next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
+
+                self.simulator.memory.push(state,
+                                           torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
+                                           next_state, torch.Tensor([reward]).to(config.DEVICE))
+
+                # remove the entry, the action has received the feedback
+                del self.taken_actions[id_event]
 
     def relay_selection(self, opt_neighbors: list, packet):
         """
