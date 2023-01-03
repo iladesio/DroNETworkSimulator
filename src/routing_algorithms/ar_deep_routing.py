@@ -52,7 +52,7 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.connection_time_min = 6  # 1 sec
 
-        # dictionary to store (cur_state, taken_action, next_state) for each packet
+        # dictionary to store (cur_state, taken_action, next_state, reward) for each packet
         # key: event identifier
         # next_state is set to None the first time, and it'll be set after a delta time in the main simulator cycle
         self.taken_actions = {}
@@ -69,9 +69,7 @@ class ARDeepLearningRouting(BASE_routing):
         if sample > eps_threshold:
             # Exploit - choose the best action
             with torch.no_grad():
-                # t.max(1) will return the largest column value of each row.
-                # second column on max result is index of where max element was
-                # found, so we pick action with the larger expected reward.
+                # get action from the Q-NN, giving current state
                 results = self.simulator.policy_net(state)
                 return self.simulator.drones[torch.argmax(results).item()]
 
@@ -79,6 +77,7 @@ class ARDeepLearningRouting(BASE_routing):
             # Explore - choose a random drone
             return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])
 
+    # todo da capire
     def plot_durations(self, show_result=False):
         plt.figure(1)
         durations_t = torch.tensor(self.episode_durations, dtype=torch.float)
@@ -164,8 +163,7 @@ class ARDeepLearningRouting(BASE_routing):
                 min_distance_bk_des
             ]
 
-        """ CURRENT DRONE """
-
+        """ STATE OF CURRENT DRONE """
         min_distance_bk_des = 9999999
         for n in list_drones:
             distance_n_depot = util.euclidean_distance(n.coords, self.simulator.depot_coordinates)
@@ -221,77 +219,70 @@ class ARDeepLearningRouting(BASE_routing):
         # outcome can be:
         #   -1 if the packet/event expired;
         #    1 if the packets has been delivered to the depot
-
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple
         # feedback for the same packet!!
 
         if id_event in self.taken_actions:
-            # BE AWARE, IMPLEMENT YOUR CODE WITHIN THIS IF CONDITION OTHERWISE IT WON'T WORK!
-            # TIPS: implement here the q-table updating process
-            # Drone id and Taken actions
+
+            # update next_state
+            if self.taken_actions[id_event][2] is None:
+                list_neighbors = [d[0] for d in self.drone.get_neighbours()]
+                self.update_next_state(list_neighbors)
 
             state, action, next_state = self.taken_actions[id_event]
 
-            # error check
-            if next_state is None:
-                print("NEXT STATE NONE")
-                # remove the entry, the action has received the feedback
-                del self.taken_actions[id_event]
+            # todo rivedere il calcolo del local minimum
+            local_minimum = True
+            for neighbor_state in state:
+                # state[3] is dist_bj_destination
+                if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
+                    local_minimum = False
+
+            chosen_state = state[action.identifier]
+
+            """
+            REWARD FUNCTION
+             Rmax, when neighbor bj is the destination
+            −Rmax, when neighbor bj is the local minimum
+             ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
+            """
+
+            # when neighbor bj is the destination
+            if outcome == 1:
+                reward = self.R_max
+
+            # when neighbor bj is the local minimum
+            # (all neighbors of node ui are further away from the destination than node ui)
+            elif local_minimum is True:
+                reward = - self.R_max
+
             else:
-                # todo rivedere il calcolo del local minimum
-                local_minimum = True
-                for neighbor_state in state:
-                    # state[3] is dist_bj_destination
-                    if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
-                        local_minimum = False
+                dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
+                dist_bj_destination = util.euclidean_distance(action.coords,
+                                                              self.simulator.depot_coordinates) + 0.001
+                connection_time = chosen_state[0]
+                packet_error_ratio = chosen_state[1]
+                remaining_energy = chosen_state[2]
 
-                chosen_state = state[action.identifier]
+                beta = 1 if connection_time >= self.connection_time_min else 0
 
-                """
-                REWARD FUNCTION
-                 Rmax, when neighbor bj is the destination
-                −Rmax, when neighbor bj is the local minimum
-                 ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
-                """
-                # when neighbor bj is the destination
-                if outcome == 1:  # todo check
-                    reward = self.R_max
-                # when neighbor bj is the local minimum
-                # (all neighbors of node ui are further away from the destination than node ui)
-                elif local_minimum is True:
-                    reward = - self.R_max
-                else:
-                    dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
-                    dist_bj_destination = util.euclidean_distance(action.coords,
-                                                                  self.simulator.depot_coordinates) + 0.001
-                    connection_time = chosen_state[0]
-                    packet_error_ratio = chosen_state[1]
-                    remaining_energy = chosen_state[2]
+                d_ui_bj = dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
+                reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
 
-                    if connection_time >= self.connection_time_min:
-                        beta = 1
-                    else:
-                        beta = 0
+            """ save sample in experience ReplayMemory """
 
-                    D_ui_bj = dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
+            state = torch.Tensor(state).to(config.DEVICE)
+            next_state = torch.Tensor(next_state).to(config.DEVICE)
 
-                    reward = self.omega * D_ui_bj + (1 - self.omega) * remaining_energy
+            state = torch.reshape(state, (1, self.simulator.n_observations * 5))
+            next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
 
-                """ save sample in experience ReplayMemory """
+            self.simulator.memory.push(state,
+                                       torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
+                                       next_state, torch.Tensor([reward]).to(config.DEVICE))
 
-                state = torch.Tensor(state).to(config.DEVICE)
-
-                next_state = torch.Tensor(next_state).to(config.DEVICE)
-
-                state = torch.reshape(state, (1, self.simulator.n_observations * 5))
-                next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
-
-                self.simulator.memory.push(state,
-                                           torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
-                                           next_state, torch.Tensor([reward]).to(config.DEVICE))
-
-                # remove the entry, the action has received the feedback
-                del self.taken_actions[id_event]
+            # remove the entry, the action has received the feedback
+            del self.taken_actions[id_event]
 
     def relay_selection(self, opt_neighbors: list, packet):
         """
@@ -306,7 +297,7 @@ class ARDeepLearningRouting(BASE_routing):
         state = self.get_current_state(list_neighbors)
 
         state_tensor = torch.Tensor(state).to(config.DEVICE)
-        state_tensor = torch.reshape(state_tensor, (1, self.simulator.n_observations * 5))  # .squeeze()
+        state_tensor = torch.reshape(state_tensor, (1, self.simulator.n_observations * 5))
 
         chosen_action = self.select_action(state_tensor, opt_neighbors)
 

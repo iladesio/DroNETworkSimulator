@@ -272,6 +272,7 @@ class Drone(Entity):
         self.last_mission_coords = None
 
         self.next_target_history = []
+
     def update_packets(self, cur_step):
         """
         Removes the expired packets from the buffer
@@ -409,6 +410,16 @@ class Drone(Entity):
 
         # set the last move routing
         self.last_move_routing = self.move_routing
+
+        if self.simulator.routing_algorithm.name == "ARDEEP_QL":
+
+            # decrease the drone's energy when it moves
+            self.residual_energy -= 1
+
+            # when the drone runs out of energy
+            # or when the drone arrives to the depot we reset the energy
+            if self.residual_energy <= 0 or self.coords == self.depot.coords:
+                self.residual_energy = self.simulator.drone_max_energy
 
     def is_full(self):
         return self.buffer_length() == self.buffer_max_size

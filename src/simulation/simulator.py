@@ -1,7 +1,6 @@
 import math
 import time
 from collections import defaultdict
-from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -25,7 +24,7 @@ you can initialize the Simulator with non default values.
 LR = 1e-4
 BATCH_SIZE = 128
 GAMMA = 0.99
-TAU = 0.005
+TAU = 1  # 0.005
 
 
 class Simulator:
@@ -72,7 +71,7 @@ class Simulator:
         self.time_step_duration = time_step_duration
         self.seed = seed
         self.event_duration = event_duration
-        self.event_max_retrasmission = math.ceil(event_duration / drone_retransmission_delta)  # 600 esempio
+        self.event_max_retrasmission = math.ceil(event_duration / drone_retransmission_delta)
         self.event_generation_prob = event_generation_prob
         self.event_generation_delay = event_generation_delay
         self.packets_max_ttl = packets_max_ttl
@@ -115,8 +114,11 @@ class Simulator:
 
             # get model from the file
             if config.READ_MODEL_DICT:
-                self.policy_net.load_state_dict(torch.load(config.MODEL_STATE_DICT_PATH))
-                self.policy_net.eval()
+                try:
+                    self.policy_net.load_state_dict(torch.load(config.MODEL_STATE_DICT_PATH))
+                    self.policy_net.eval()
+                except RuntimeError:
+                    print("ERROR! Cannot load model from file")
 
             self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
             self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -252,13 +254,6 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
-                # todo clean code
-                # todo: decrease the drone's energy when it moves
-                drone.residual_energy -= 1  # todo: di quanto diminuire
-                # when the drone runs out of energy we reset it
-                if drone.residual_energy <= 0:
-                    drone.residual_energy = self.drone_max_energy
-
             # todo da rivedere
             if cur_step % self.drone_retransmission_delta == 0 and self.routing_algorithm.name == "ARDEEP_QL":
                 for drone in self.drones:
@@ -274,6 +269,10 @@ class Simulator:
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
 
+            # train model
+            if self.routing_algorithm.name == "ARDEEP_QL":
+                self.optimize_model()
+
         if config.SAVE_CONNECTION_TIME_DATA:
             utilities.save_connection_time_data(self.drones)
 
@@ -281,57 +280,60 @@ class Simulator:
             print("End of simulation, sim time: " + str(
                 (cur_step + 1) * self.time_step_duration) + " sec, #iteration: " + str(cur_step + 1))
 
+    """ TRAINING MODEL METHOD """
+
     def optimize_model(self):
 
-        """ TRAINING MODEL """
-        if self.routing_algorithm.name == "ARDEEP_QL":
+        # Perform one step of the optimization (on the policy network)
+        if len(self.memory) < BATCH_SIZE:
+            return
 
-            for k in range(config.N_TRAINING_STEPS):
-                # Perform one step of the optimization (on the policy network)
-                if len(self.memory) < BATCH_SIZE:
-                    return
-                transitions = self.memory.sample(BATCH_SIZE)
-                # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-                # detailed explanation). This converts batch-array of Transitions
-                # to Transition of batch-arrays.
-                batch = Transition(*zip(*transitions))
+        self.train_count += 1
 
-                # Compute a mask of non-final states and concatenate the batch elements
-                # (a final state would've been the one after which simulation ended)
-                non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)),
-                                              device=config.DEVICE,
-                                              dtype=torch.bool)
-                non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-                state_batch = torch.cat(batch.state)
-                action_batch = torch.cat(batch.action)
-                reward_batch = torch.cat(batch.reward)
+        transitions = self.memory.sample(BATCH_SIZE)
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+        # detailed explanation). This converts batch-array of Transitions
+        # to Transition of batch-arrays.
+        batch = Transition(*zip(*transitions))
 
-                # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-                # columns of actions taken. These are the actions which would've been taken
-                # for each batch state according to policy_net
-                state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        # Compute a mask of non-final states and concatenate the batch elements
+        # (a final state would've been the one after which simulation ended)
+        # todo check if we can remove non_final_mask
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)),
+                                      device=config.DEVICE,
+                                      dtype=torch.bool)
 
-                # Compute V(s_{t+1}) for all next states.
-                # Expected values of actions for non_final_next_states are computed based
-                # on the "older" target_net; selecting their best reward with max(1)[0].
-                # This is merged based on the mask, such that we'll have either the expected
-                # state value or 0 in case the state was final.
-                next_state_values = torch.zeros(BATCH_SIZE, device=config.DEVICE)
-                with torch.no_grad():
-                    next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
-                # Compute the expected Q values
-                expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
 
-                # Compute Huber loss
-                criterion = nn.SmoothL1Loss()
-                loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken. These are the actions which would've been taken
+        # for each batch state according to policy_net
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
-                # Optimize the model
-                self.optimizer.zero_grad()
-                loss.backward()
-                # In-place gradient clipping
-                torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
-                self.optimizer.step()
+        # Compute V(s_{t+1}) for all next states.
+        # Expected values of actions for non_final_next_states are computed based
+        # on the "older" target_net; selecting their best reward with max(1)[0].
+        # This is merged based on the mask, such that we'll have either the expected
+        # state value or 0 in case the state was final.
+        next_state_values = torch.zeros(BATCH_SIZE, device=config.DEVICE)
+        with torch.no_grad():
+            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+        # Compute the expected Q values
+        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+
+        # Compute Huber loss
+        criterion = nn.SmoothL1Loss()
+        loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+        # Optimize the model
+        self.optimizer.zero_grad()
+        loss.backward()
+        # In-place gradient clipping
+        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+        self.optimizer.step()
 
                 # Soft update of the target network's weights
                 # θ′ ← τ θ + (1 −τ )θ′
@@ -341,25 +343,17 @@ class Simulator:
                     target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (
                             1 - TAU)
 
-                self.target_net.load_state_dict(target_net_state_dict)
+            self.target_net.load_state_dict(target_net_state_dict)
 
-            # save the model
-            if config.SAVE_MODEL_DICT:
-                torch.save(self.target_net.state_dict(), config.MODEL_STATE_DICT_PATH)
+        # save the model
+        if config.SAVE_MODEL_DICT:
+            torch.save(self.target_net.state_dict(), config.MODEL_STATE_DICT_PATH)
 
     def close(self):
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
         print("Len memory: ", len(self.memory))
-
-        # salvare solo per colab
-        # with open(config.REPLAY_MEMORY_JSON, 'w') as out:
-        #    json.dump(self.memory.get_json(), out)
-
-        if config.TRAIN_MODEL and self.routing_algorithm.name == "ARDEEP_QL":
-            self.sim_metrics["start_train_time"] = datetime.now().strftime("%H:%M:%S")
-            self.optimize_model()
-            self.sim_metrics["end_train_time"] = datetime.now().strftime("%H:%M:%S")
+        print("Train count: ", self.train_count)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
@@ -367,7 +361,6 @@ class Simulator:
 
     def get_metrics(self):
         self.sim_metrics.update(self.metrics.get_metrics())
-
         self.sim_metrics["len memory"] = len(self.memory)
 
         return self.sim_metrics

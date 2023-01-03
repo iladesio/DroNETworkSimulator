@@ -92,19 +92,19 @@ class DQN(nn.Module):
     # Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         mask = self.get_mask(x).to(config.DEVICE)
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
+        x = F.leaky_relu(self.layer1(x), negative_slope=0.4)
+        x = F.leaky_relu(self.layer2(x), negative_slope=0.4)
         x = self.layer3(x)
         result = F.softmax(torch.masked_fill(x, mask == 0, float('-inf')), dim=1)
         return result
 
-    def get_mask(self, x):
+    def get_mask(self, state):
         complete_mask = []
 
-        for riga in x:
+        for row in state:
             mask = []
 
-            splitted_tensors = torch.split(riga, 5)
+            splitted_tensors = torch.split(row, 5)
 
             for statino in splitted_tensors:
                 if torch.sum(statino).item() == 0.:

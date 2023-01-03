@@ -195,9 +195,9 @@ class BASE_routing(metaclass=abc.ABCMeta):
         self.simulator.network_dispatcher.send_packet_to_medium(packet, src_drone, dst_drone,
                                                                 curr_step + config.LIL_DELTA)
 
-        # todo clean code
-        # todo: decrease the drone's energy when it sends a packet
-        self.drone.residual_energy -= 1  # todo: di quanto diminuire
+        # decrease the drone's energy when it sends a packet
+        self.drone.residual_energy -= 1
+
         # when the drone runs out of energy we reset it
         if self.drone.residual_energy <= 0:
             self.drone.residual_energy = self.simulator.drone_max_energy

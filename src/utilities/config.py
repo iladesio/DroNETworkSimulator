@@ -42,19 +42,23 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 STATISTICS_RUN_PATH = "data/statistics"
 
 """ ---------------- AR_DEEP constants ---------------- """
-SAVE_ARDEEP_METRICS_TXT = True  # bool: output all simulation metrics and times in a txt file
-N_TRAINING_STEPS = 250
+CALCULATE_NEXT_STATE_DELTA = 50
+TRAINING_DELTA = 300
+
+SAVE_ARDEEP_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
+
 # current data -> sim_duration: 200_000 n_drones: 20
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # output file path of the ReplayMemory
 REPLAY_MEMORY_JSON = "data/ar-deep/replay_memory.json"
+REPLAY_MEMORY_PT = "data/ar-deep/replay_memory.pt"
 
-SAVE_MODEL_DICT = True  # bool: save model dict after training
-READ_MODEL_DICT = True  # bool: save model dict after training
+SAVE_MODEL_DICT = False  # bool: save model dict after training
+READ_MODEL_DICT = False  # bool: save model dict after training
 # file path of the model (saved after training and read before run the simulation)
-TRAIN_MODEL = True  # bool: call optimize_model() fnc to train model on simulator close
+TRAIN_MODEL = False  # bool: call optimize_model() fnc to train model on simulator close
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
 
 SAVE_CONNECTION_TIME_DATA = True  # bool: save connection time data to the file
@@ -76,7 +80,7 @@ SAVE_PLOT_DIR = "data/plots/"
 # add constants here...
 
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 10_000  # int: steps of simulation. # ***
+SIM_DURATION = 20_000  # int: steps of simulation. # ***
 TS_DURATION = 0.150  # float: seconds duration of a step in seconds.
 SEED = 10  # int: seed of this simulation.
 
