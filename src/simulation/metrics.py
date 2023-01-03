@@ -39,6 +39,9 @@ class Metrics:
 
         self.time_on_active_routing = 0
 
+        self.rewards_actions = {}
+        self.mean_reward_actions = {}
+
     def other_metrics(self):
         """
         Post-execution metrics
@@ -85,6 +88,21 @@ class Metrics:
         self.event_delivery_times = event_delivery_times
         self.packet_mean_delivery_time = np.mean(packet_delivery_times) * self.simulator.time_step_duration
         self.event_mean_delivery_time = np.mean(event_delivery_times) * self.simulator.time_step_duration
+
+        self.mean_rewards_actions = {}
+
+        for drone in self.simulator.drones:
+            self.mean_rewards_actions[drone.identifier] = {}
+
+            for action in self.simulator.drones:
+                self.mean_rewards_actions[drone.identifier][action.identifier] = None
+
+        for drone_id in self.rewards_actions.keys():
+            actions = self.rewards_actions[drone_id]
+            for action in actions.keys():
+                rewards = self.rewards_actions[drone_id][action]
+                if len(rewards) > 0:
+                    self.mean_rewards_actions[drone_id][action] = sum(rewards) / len(rewards)
 
     def print_overall_stats(self):
         """
