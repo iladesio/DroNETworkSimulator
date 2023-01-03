@@ -254,8 +254,8 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
-            # todo da rivedere
-            if cur_step % self.drone_retransmission_delta == 0 and self.routing_algorithm.name == "ARDEEP_QL":
+            # todo da rivedere delta
+            if self.routing_algorithm.name == "ARDEEP_QL" and cur_step % config.CALCULATE_NEXT_STATE_DELTA == 0:
                 for drone in self.drones:
                     list_neighbors = [d[0] for d in drone.get_neighbours()]
 
@@ -335,13 +335,14 @@ class Simulator:
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
-                # Soft update of the target network's weights
-                # θ′ ← τ θ + (1 −τ )θ′
-                target_net_state_dict = self.target_net.state_dict()
-                policy_net_state_dict = self.policy_net.state_dict()
-                for key in policy_net_state_dict:
-                    target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (
-                            1 - TAU)
+        # Soft update of the target network's weights
+        # θ′ ← τ θ + (1 −τ) θ′
+        if self.cur_step % config.TRAINING_DELTA == 0:
+            target_net_state_dict = self.target_net.state_dict()
+            policy_net_state_dict = self.policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[key] * TAU + \
+                                             target_net_state_dict[key] * (1 - TAU)
 
             self.target_net.load_state_dict(target_net_state_dict)
 

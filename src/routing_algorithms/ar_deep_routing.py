@@ -46,9 +46,9 @@ class ARDeepLearningRouting(BASE_routing):
         # use this to have always the same simulation
         random.seed(self.simulator.seed)
 
-        self.omega = 0  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
+        self.omega = 0.8  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
-        self.R_max = 2
+        self.R_max = 1
 
         self.connection_time_min = 6  # 1 sec
 
