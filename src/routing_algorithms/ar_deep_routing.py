@@ -46,7 +46,7 @@ class ARDeepLearningRouting(BASE_routing):
         # use this to have always the same simulation
         random.seed(self.simulator.seed)
 
-        self.omega = 0.8  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
+        self.omega = 0.2  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
         self.R_max = 1
 
@@ -234,7 +234,7 @@ class ARDeepLearningRouting(BASE_routing):
             # update next_state if it is None
             if self.taken_actions[id_event][2] is None:
                 list_neighbors = [d[0] for d in self.drone.get_neighbours()]
-                self.update_next_state(list_neighbors)
+                self.update_next_state(list_neighbors, self.simulator.cur_step)
 
             state, action, next_state = self.taken_actions[id_event]
             drone_coords_prev, action_coords_prev, is_local_minimum = self.taken_action_meta[id_event]
