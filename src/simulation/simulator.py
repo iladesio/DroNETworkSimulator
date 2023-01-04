@@ -302,6 +302,8 @@ class Simulator:
 
     def get_connection_time_data(self, cur_step, drone):
 
+        error_range = 5
+
         curr_open_connection_drones = set()
         prev_open_connection_drones = set()
 
@@ -321,7 +323,7 @@ class Simulator:
             # if we meet the current neighbor for the first time or
             # there isn't an opened connection, we create it
             if not conn_time_history or (conn_time_history and conn_time_history[-1][1] is not None):
-                conn_time_history.append([cur_step, None])
+                conn_time_history.append([cur_step - error_range, None])
 
             # we save in a set all current opened connection
             curr_open_connection_drones.add(id_drone)
