@@ -123,8 +123,8 @@ class ARDeepLearningRouting(BASE_routing):
                         is_value_from_interval = True
                         break
 
+                # handle the case of no data is found
                 if connection_time == 0. and not is_value_from_interval:
-                    self.simulator.conn_time_zero += 1
                     connection_time = int(random.uniform(0, self.simulator.max_connection_time))
             else:
                 # value generated randomly

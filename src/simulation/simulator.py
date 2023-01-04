@@ -131,7 +131,6 @@ class Simulator:
             self.weights_l3 = self.policy_net.layer3.weight.data.tolist()
 
             self.train_count = 0
-            self.conn_time_zero = 0
 
         print("Device: ", config.DEVICE)
 
@@ -330,7 +329,7 @@ class Simulator:
         # close previous opened connection that doesn't appear in the current neighbours list
         for neighbour in prev_open_connection_drones:
             if neighbour not in curr_open_connection_drones:
-                drone.neighbor_connection_time[neighbour][-1][1] = cur_step - 1
+                drone.neighbor_connection_time[neighbour][-1][1] = cur_step + error_range
 
     """ TRAINING MODEL METHOD """
 
@@ -407,7 +406,6 @@ class Simulator:
         print("Closing simulation")
         print("Len memory: ", len(self.memory))
         print("Train count: ", self.train_count)
-        print("Connection time zero: ", self.conn_time_zero)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
