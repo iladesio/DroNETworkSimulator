@@ -388,24 +388,6 @@ class TraversedCells:
 def map_angle_to_state(angle):
     angle = math.floor(angle)
 
-    """
-    if 360 >= angle > 315:
-        return 8
-    elif 315 >= angle > 270:
-        return 7
-    elif 270 >= angle > 225:
-        return 6
-    elif 225 >= angle > 180:
-        return 5
-    elif 180 >= angle > 135:
-        return 4
-    elif 135 >= angle > 90:
-        return 3
-    elif 90 >= angle > 45:
-        return 2
-    else:
-        return 1
-    """
     if 360 >= angle > 270:
         return 4
     elif 270 >= angle > 180:
@@ -455,6 +437,7 @@ def read_connection_time_values(drone_identifier):
     else:
         return {}
 
+
 def save_connection_time_data(drones):
     connection_time_data = {}
     for drone in drones:
@@ -482,8 +465,14 @@ def get_max_connection_time(drones):
                     pass
                 else:
                     for value in i:
-                        if value[1] - value[0] > max_conn_time:
-                            max_conn_time = value[1] - value[0]
+                        if value[0] > config.SIM_DURATION:
+                            break
+
+                        right_limit = value[1] if value[1] <= config.SIM_DURATION else config.SIM_DURATION
+
+                        if right_limit - value[0] > max_conn_time:
+                            max_conn_time = right_limit - value[0]
+
         return max_conn_time
     else:
         return config.CONNECTION_TIME_MAX

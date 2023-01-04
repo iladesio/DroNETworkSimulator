@@ -17,7 +17,7 @@ def main():
 
             f.write("\nStart: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
-            for i in range(10):
+            for i in range(1):
                 f.write("\n\nStart run " + str(i) + ": " + datetime.now().strftime("%H:%M:%S"))
 
                 """ the place where to run simulations and experiments. """

@@ -126,6 +126,13 @@ class Simulator:
             self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
             self.memory = ReplayMemory(10000)
 
+            self.weights_l1 = self.policy_net.layer1.weight.data.tolist()
+            self.weights_l2 = self.policy_net.layer2.weight.data.tolist()
+            self.weights_l3 = self.policy_net.layer3.weight.data.tolist()
+
+            self.train_count = 0
+            self.conn_time_zero = 0
+
         print("Device: ", config.DEVICE)
 
     def __setup_net_dispatcher(self):
@@ -231,7 +238,16 @@ class Simulator:
         Simulator main function
         @return: None
         """
+
+        """ ---- initialize simulator variabiles ---- """
         self.max_connection_time = utilities.get_max_connection_time(self.drones)
+
+        for drone in self.drones:
+            self.metrics.rewards_actions[drone.identifier] = {}
+
+            for action in self.drones:
+                self.metrics.rewards_actions[drone.identifier][action.identifier] = []
+        """ ----------------------------------------- """
 
         for cur_step in tqdm(range(self.len_simulation)):
 
@@ -245,6 +261,10 @@ class Simulator:
             # sense the events
             self.event_generator.handle_events_generation(cur_step, self.drones)
 
+            if config.SAVE_CONNECTION_TIME_DATA and self.routing_algorithm.name == "ARDEEP_QL":
+                for drone in self.drones:
+                    self.get_connection_time_data(cur_step, drone)
+
             for drone in self.drones:
                 # 1. update expired packets on drone buffers
                 # 2. try routing packets vs other drones or depot
@@ -254,13 +274,14 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
+            """ ----------------- update next_state ----------------- """
             # todo da rivedere delta
             if self.routing_algorithm.name == "ARDEEP_QL" and cur_step % config.CALCULATE_NEXT_STATE_DELTA == 0:
                 for drone in self.drones:
                     list_neighbors = [d[0] for d in drone.get_neighbours()]
 
                     # get next state
-                    drone.routing_algorithm.update_next_state(list_neighbors)
+                    drone.routing_algorithm.update_next_state(list_neighbors, self.cur_step + 1)
 
             # in case we need probability map
             if config.ENABLE_PROBABILITIES:
@@ -270,7 +291,7 @@ class Simulator:
                 self.__plot(cur_step)
 
             # train model
-            if self.routing_algorithm.name == "ARDEEP_QL":
+            if self.routing_algorithm.name == "ARDEEP_QL" and config.TRAIN_MODEL:
                 self.optimize_model()
 
         if config.SAVE_CONNECTION_TIME_DATA:
@@ -279,6 +300,37 @@ class Simulator:
         if config.DEBUG:
             print("End of simulation, sim time: " + str(
                 (cur_step + 1) * self.time_step_duration) + " sec, #iteration: " + str(cur_step + 1))
+
+    def get_connection_time_data(self, cur_step, drone):
+
+        curr_open_connection_drones = set()
+        prev_open_connection_drones = set()
+
+        # get the list of previous opened connection
+        for neighbour in drone.neighbor_connection_time.keys():
+            if drone.neighbor_connection_time[neighbour] and \
+                    drone.neighbor_connection_time[neighbour][-1][1] is None:
+                prev_open_connection_drones.add(neighbour)
+
+        neighbours = [n[0] for n in drone.get_neighbours()]
+
+        for neigh in neighbours:
+
+            id_drone = neigh.identifier
+            conn_time_history = drone.neighbor_connection_time[id_drone]
+
+            # if we meet the current neighbor for the first time or
+            # there isn't an opened connection, we create it
+            if not conn_time_history or (conn_time_history and conn_time_history[-1][1] is not None):
+                conn_time_history.append([cur_step, None])
+
+            # we save in a set all current opened connection
+            curr_open_connection_drones.add(id_drone)
+
+        # close previous opened connection that doesn't appear in the current neighbours list
+        for neighbour in prev_open_connection_drones:
+            if neighbour not in curr_open_connection_drones:
+                drone.neighbor_connection_time[neighbour][-1][1] = cur_step - 1
 
     """ TRAINING MODEL METHOD """
 
@@ -355,10 +407,29 @@ class Simulator:
         print("Closing simulation")
         print("Len memory: ", len(self.memory))
         print("Train count: ", self.train_count)
+        print("Connection time zero: ", self.conn_time_zero)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
         # self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
+
+        # weights_l1_final = self.policy_net.layer1.weight.data.tolist()
+        # weights_l2_final = self.policy_net.layer2.weight.data.tolist()
+        # weights_l3_final = self.policy_net.layer3.weight.data.tolist()
+        #
+        # weights_diff = []
+        #
+        # for r in range(len(weights_l1_final)):
+        #     row = []
+        #     for i in range(len(weights_l1_final[r])):
+        #         diff = weights_l1_final[r][i] - self.weights_l1[r][i]
+        #         if diff > 0.1:
+        #             print("sium " + diff)
+        #         row.append(diff)
+        #
+        #     weights_diff.append(row)
+        #
+        # print(weights_diff)
 
     def get_metrics(self):
         self.sim_metrics.update(self.metrics.get_metrics())

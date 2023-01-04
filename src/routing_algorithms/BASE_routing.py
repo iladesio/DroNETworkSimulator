@@ -73,6 +73,8 @@ class BASE_routing(metaclass=abc.ABCMeta):
     def send_packets(self, cur_step):
         """ procedure 3 -> choice next hop and try to send it the data packet """
 
+        neighbours = [n[0] for n in self.drone.get_neighbours()]
+
         # FLOW 0
         if self.no_transmission or self.drone.buffer_length() == 0:
             return
@@ -90,15 +92,6 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
             opt_neighbors = []
 
-            curr_open_connection_drones = set()
-            prev_open_connection_drones = set()
-
-            # get the list of previous opened connection
-            for neighbour in self.drone.neighbor_connection_time.keys():
-                if self.drone.neighbor_connection_time[neighbour] and \
-                        self.drone.neighbor_connection_time[neighbour][-1][1] is None:
-                    prev_open_connection_drones.add(neighbour)
-
             for hpk_id in self.hello_messages:
                 hpk: HelloPacket = self.hello_messages[hpk_id]
 
@@ -108,23 +101,10 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                 opt_neighbors.append((hpk, hpk.src_drone))
 
-                id_drone = hpk.src_drone.identifier
-                conn_time_history = self.drone.neighbor_connection_time[id_drone]
-
-                # if we meet the current neighbor for the first time or
-                # there isn't an opened connection, we create it
-                if not conn_time_history or (conn_time_history and conn_time_history[-1][1] is not None):
-                    conn_time_history.append([self.simulator.cur_step, None])
-
-                # we save in a set all current opened connection
-                curr_open_connection_drones.add(id_drone)
-
-            # close previous opened connection that doesn't appear in the current hpk list
-            for neighbour in prev_open_connection_drones:
-                if neighbour not in curr_open_connection_drones:
-                    self.drone.neighbor_connection_time[neighbour][-1][1] = self.simulator.cur_step
-
             if len(opt_neighbors) == 0:
+                return
+
+            if len(neighbours) == 0:
                 return
 
             # send packets
@@ -132,7 +112,9 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                 self.simulator.metrics.mean_numbers_of_possible_relays.append(len(opt_neighbors))
 
-                best_neighbor = self.relay_selection(opt_neighbors, pkd)  # compute score
+                neighbours_list = [("", n) for n in neighbours]
+
+                best_neighbor = self.relay_selection(neighbours_list, pkd)  # compute score
 
                 if best_neighbor is not None:
                     self.unicast_message(pkd, self.drone, best_neighbor, cur_step)

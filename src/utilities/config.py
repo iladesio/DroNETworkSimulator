@@ -42,7 +42,7 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 STATISTICS_RUN_PATH = "data/statistics"
 
 """ ---------------- AR_DEEP constants ---------------- """
-CALCULATE_NEXT_STATE_DELTA = 50
+CALCULATE_NEXT_STATE_DELTA = 10
 TRAINING_DELTA = 300
 
 SAVE_ARDEEP_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
@@ -61,7 +61,7 @@ READ_MODEL_DICT = False  # bool: save model dict after training
 TRAIN_MODEL = False  # bool: call optimize_model() fnc to train model on simulator close
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
 
-SAVE_CONNECTION_TIME_DATA = True  # bool: save connection time data to the file
+SAVE_CONNECTION_TIME_DATA = False  # bool: save connection time data to the file
 USE_CONNECTION_TIME_DATA = True  # bool: read connection time data from the file
 
 DEBUG = False  # bool: whether to print debug strings or not.

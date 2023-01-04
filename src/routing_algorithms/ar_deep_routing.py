@@ -52,7 +52,7 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.connection_time_min = 6  # 1 sec
 
-        # dictionary to store (cur_state, taken_action, next_state, reward) for each packet
+        # dictionary to store (cur_state, chose_action identifier, next_state, reward) for each packet
         # key: event identifier
         # next_state is set to None the first time, and it'll be set after a delta time in the main simulator cycle
         self.taken_actions = {}
@@ -108,7 +108,7 @@ class ARDeepLearningRouting(BASE_routing):
             else:
                 display.display(plt.gcf())
 
-    def get_current_state(self, list_drones):
+    def get_current_state(self, list_drones, step):
         state = {}
 
         connection_time = 0
@@ -116,11 +116,16 @@ class ARDeepLearningRouting(BASE_routing):
         for neighbor in list_drones:
             # expected connection time of the link
             if config.USE_CONNECTION_TIME_DATA and str(neighbor.identifier) in self.drone.nb_connection_time.keys():
-
+                is_value_from_interval = False
                 for c in self.drone.nb_connection_time[str(neighbor.identifier)]:
-                    if c[0] <= self.simulator.cur_step <= c[1]:
-                        connection_time = c[1] - self.simulator.cur_step
+                    if c[0] <= step <= c[1]:
+                        connection_time = c[1] - step
+                        is_value_from_interval = True
                         break
+
+                if connection_time == 0. and not is_value_from_interval:
+                    self.simulator.conn_time_zero += 1
+                    connection_time = int(random.uniform(0, self.simulator.max_connection_time))
             else:
                 # value generated randomly
                 connection_time = int(random.uniform(0, self.simulator.max_connection_time))
@@ -153,7 +158,6 @@ class ARDeepLearningRouting(BASE_routing):
             remaining_energy = remaining_energy / self.simulator.drone_max_energy
             dist_ui_destination = util.euclidean_distance(self.drone.coords, self.drone.depot.coords)
 
-            """ ATTENTION! value not normalized between 0 and 1"""
             dist_bj_destination = 1 if dist_ui_destination == 0 else \
                 np.minimum(dist_bj_destination / dist_ui_destination, 1)
 
@@ -181,10 +185,8 @@ class ARDeepLearningRouting(BASE_routing):
         dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
         dist_bj_destination = 1
 
-        if dist_ui_destination == 0:
-            min_distance_bk_des = 0
-        else:
-            min_distance_bk_des = np.minimum(min_distance_bk_des / dist_ui_destination, 1)
+        min_distance_bk_des = 0 if dist_ui_destination == 0 else \
+            np.minimum(min_distance_bk_des / dist_ui_destination, 1)
 
         # build the tuple with each state starting from the complete list of drones
         # i.e. [0, (...state...), 0, 0, (...state...) ]
@@ -202,9 +204,9 @@ class ARDeepLearningRouting(BASE_routing):
 
         return complete_state
 
-    def update_next_state(self, list_neighbors):
+    def update_next_state(self, list_neighbors, cur_step):
 
-        next_state = self.get_current_state(list_neighbors)
+        next_state = self.get_current_state(list_neighbors, cur_step)
 
         for event_id in self.taken_actions.keys():
             if self.taken_actions[event_id][2] is None:
@@ -229,25 +231,18 @@ class ARDeepLearningRouting(BASE_routing):
 
         if id_event in self.taken_actions:
 
-            # update next_state
+            # update next_state if it is None
             if self.taken_actions[id_event][2] is None:
                 list_neighbors = [d[0] for d in self.drone.get_neighbours()]
                 self.update_next_state(list_neighbors)
 
             state, action, next_state = self.taken_actions[id_event]
-            drone_coords_prev, action_coords_prev = self.taken_action_meta[id_event]
+            drone_coords_prev, action_coords_prev, is_local_minimum = self.taken_action_meta[id_event]
 
-            # todo rivedere il calcolo del local minimum
-            local_minimum = True
-            for neighbor_state in state:
-                # state[3] is dist_bj_destination
-                if neighbor_state[3] is not 0 and neighbor_state[3] < 1:
-                    local_minimum = False
+            chosen_state = state[action]
 
-            chosen_state = state[action.identifier]
-
-            """
-            REWARD FUNCTION
+            """ 
+            ------------- CALCULATE REWARD ------------- 
              Rmax, when neighbor bj is the destination
             −Rmax, when neighbor bj is the local minimum
              ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
@@ -259,13 +254,13 @@ class ARDeepLearningRouting(BASE_routing):
 
             # when neighbor bj is the local minimum
             # (all neighbors of node ui are further away from the destination than node ui)
-            elif local_minimum is True:
+            elif is_local_minimum is True:
                 reward = - self.R_max
 
             else:
                 dist_ui_destination = util.euclidean_distance(drone_coords_prev, self.simulator.depot_coordinates)
                 dist_bj_destination = util.euclidean_distance(action_coords_prev, self.simulator.depot_coordinates)
-                connection_time = chosen_state[0]
+                connection_time = chosen_state[0] * self.simulator.max_connection_time  # denormalize value
                 packet_error_ratio = chosen_state[1]
                 remaining_energy = chosen_state[2]
 
@@ -277,10 +272,9 @@ class ARDeepLearningRouting(BASE_routing):
                 reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
 
             """ update metrics """
-            self.simulator.metrics.rewards_actions[self.drone.identifier][action.identifier].append(reward)
+            self.simulator.metrics.rewards_actions[self.drone.identifier][action].append(reward)
 
             """ save sample in experience ReplayMemory """
-
             state = torch.Tensor(state).to(config.DEVICE)
             next_state = torch.Tensor(next_state).to(config.DEVICE)
 
@@ -288,7 +282,7 @@ class ARDeepLearningRouting(BASE_routing):
             next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
 
             self.simulator.memory.push(state,
-                                       torch.tensor([[action.identifier]], dtype=torch.int64, device=config.DEVICE),
+                                       torch.tensor([[action]], dtype=torch.int64, device=config.DEVICE),
                                        next_state, torch.Tensor([reward]).to(config.DEVICE))
 
             # remove the entry, the action has received the feedback
@@ -304,15 +298,27 @@ class ARDeepLearningRouting(BASE_routing):
 
         list_neighbors = [n[1] for n in opt_neighbors]
 
-        state = self.get_current_state(list_neighbors)
+        state = self.get_current_state(list_neighbors, self.simulator.cur_step)
 
         state_tensor = torch.Tensor(state).to(config.DEVICE)
         state_tensor = torch.reshape(state_tensor, (1, self.simulator.n_observations * 5))
 
         chosen_action = self.select_action(state_tensor, opt_neighbors)
 
+        """ check if chosen action is a local minimum """
+        dist_ui_des = util.euclidean_distance(chosen_action.coords, self.simulator.depot_coordinates)
+
+        is_local_minimum = True
+        nn = chosen_action.get_neighbours()
+
+        for n in nn:
+            dist_n_des = util.euclidean_distance(n[0].coords, self.simulator.depot_coordinates)
+            if dist_ui_des > dist_n_des:
+                is_local_minimum = False
+
         # store in taken actions
-        self.taken_actions[packet.event_ref.identifier] = (state, chosen_action, None)
-        self.taken_action_meta[packet.event_ref.identifier] = (self.drone.coords, chosen_action.coords)
+        self.taken_actions[packet.event_ref.identifier] = (state, chosen_action.identifier, None)
+        self.taken_action_meta[packet.event_ref.identifier] = (
+            self.drone.coords, chosen_action.coords, is_local_minimum)
 
         return None if chosen_action.identifier == self.drone.identifier else chosen_action
