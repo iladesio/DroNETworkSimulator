@@ -95,8 +95,7 @@ class DQN(nn.Module):
         x = F.leaky_relu(self.layer1(x), negative_slope=0.4)
         x = F.leaky_relu(self.layer2(x), negative_slope=0.4)
         x = self.layer3(x)
-        result = F.softmax(torch.masked_fill(x, mask == 0, float('-inf')), dim=1)
-        return result
+        return torch.masked_fill(x, mask == 0, float('-inf'))
 
     def get_mask(self, state):
         complete_mask = []

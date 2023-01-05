@@ -42,8 +42,8 @@ RANDOM_START_POINT = True  # bool whether the drones start the mission at random
 STATISTICS_RUN_PATH = "data/statistics"
 
 """ ---------------- AR_DEEP constants ---------------- """
-CALCULATE_NEXT_STATE_DELTA = 10
-TRAINING_DELTA = 300
+CALCULATE_NEXT_STATE_DELTA = 50
+TRAINING_DELTA = 500
 
 SAVE_ARDEEP_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
 
@@ -102,7 +102,7 @@ COMMUNICATION_RANGE_DRONE = 150  # float: meters, communication range of the dro
 SENSING_RANGE_DRONE = 0  # float: meters, the sensing range of the drones.
 DRONE_SPEED = 8  # float: m/s, drone speed.
 DRONE_MAX_BUFFER_SIZE = 10000  # int: max number of packets in the buffer of a drone.
-DRONE_MAX_ENERGY = SIM_DURATION / 10  # 1000000  # int: max energy of a drone.
+DRONE_MAX_ENERGY = SIM_DURATION / 50  # 1000000  # int: max energy of a drone.
 
 # depot
 DEPOT_COMMUNICATION_RANGE = 150  # float: meters, communication range of the depot.

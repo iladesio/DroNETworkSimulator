@@ -3,6 +3,8 @@ import pickle
 
 import numpy as np
 
+from src.simulation import simulator
+
 """ Metrics class keeps track of all the metrics during all the simulation. """
 
 
@@ -10,6 +12,7 @@ class Metrics:
 
     def __init__(self, simulator):
 
+        self.mission_setup = {}
         self.simulator = simulator
 
         # The mean number of possible relays when i want to communicate
@@ -41,6 +44,10 @@ class Metrics:
 
         self.rewards_actions = {}
         self.mean_reward_actions = {}
+
+        self.train_count = 0
+        self.loss_trend = []
+        self.reward_trend = []
 
     def other_metrics(self):
         """
@@ -171,6 +178,12 @@ class Metrics:
             "time_on_active_routing": str(self.time_on_active_routing)
         }
 
+        if self.simulator.routing_algorithm.name == "ARDEEP_QL":
+            self.mission_setup.update({
+                "batch_size": simulator.BATCH_SIZE,
+                "learning_rate": simulator.LR,
+            })
+
     def __dictionary_represenation(self):
         """ compute the dictionary to save as json """
         self.other_metrics()
@@ -188,14 +201,17 @@ class Metrics:
         out_results["time_on_mission"] = self.time_on_mission
         out_results["packet_delivery_ratio"] = self.number_of_packets_to_depot / self.all_data_packets_in_simulation
         out_results["all_control_packets_in_simulation"] = self.all_control_packets_in_simulation
-        out_results["all_data_packets_in_simulation"] = self.all_data_packets_in_simulation
-        out_results["all_events"] = [ev.to_json() for ev in self.events]
+        # out_results["all_data_packets_in_simulation"] = self.all_data_packets_in_simulation
+        # out_results["all_events"] = [ev.to_json() for ev in self.events]
         out_results["not_listened_events"] = [ev.to_json() for ev in self.events_not_listened]
         out_results["events_delivery_times"] = [str(e) for e in self.event_delivery_times]
         out_results["drones_packets"] = [pck.to_json() for pck in self.drones_packets]
-        out_results["drones_to_depot_packets"] = [(pck.to_json(), delivery_ts) for pck, delivery_ts in
-                                                  self.drones_packets_to_depot]
+        # out_results["drones_to_depot_packets"] = [(pck.to_json(), delivery_ts) for pck, delivery_ts in self.drones_packets_to_depot]
         out_results["mean_number_of_relays"] = np.nanmean(self.mean_numbers_of_possible_relays)
+
+        out_results["train_count"] = self.train_count
+        out_results["loss_trend"] = self.loss_trend
+        out_results["reward_trend"] = self.reward_trend
 
         return out_results
 

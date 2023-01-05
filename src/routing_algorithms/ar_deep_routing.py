@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.utilities import utilities as util, config
@@ -16,20 +17,12 @@ if is_ipython:
 
 plt.ion()
 
-# BATCH_SIZE is the number of transitions sampled from the replay buffer
-# GAMMA is the discount factor as mentioned in the previous section
 # EPS_START is the starting value of epsilon
 # EPS_END is the final value of epsilon
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
-# TAU is the update rate of the target network
-# LR is the learning rate of the AdamW optimizer
-BATCH_SIZE = 128
-GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 1000
-TAU = 0.005
-LR = 1e-4
 
 
 class ARDeepLearningRouting(BASE_routing):
@@ -46,7 +39,7 @@ class ARDeepLearningRouting(BASE_routing):
         # use this to have always the same simulation
         random.seed(self.simulator.seed)
 
-        self.omega = 0.2  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
+        self.omega = 0.3  # 0 < w < 1 used to adjust the importance of reliable distance Dij in reward function
 
         self.R_max = 1
 
@@ -75,9 +68,8 @@ class ARDeepLearningRouting(BASE_routing):
             # Exploit - choose the best action
             with torch.no_grad():
                 # get action from the Q-NN, giving current state
-                results = self.simulator.policy_net(state)
+                results = F.softmax(self.simulator.policy_net(state), dim=1)
                 return self.simulator.drones[torch.argmax(results).item()]
-
         else:
             # Explore - choose a random drone
             return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])

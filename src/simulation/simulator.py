@@ -21,9 +21,13 @@ as default all the parameters are set to be those in the config file. For extens
 you can initialize the Simulator with non default values. 
 """
 
+# LR is the learning rate of the AdamW optimize
+# BATCH_SIZE is the number of transitions sampled from the replay buffer
+# GAMMA is the discount factor as mentioned in the previous section
+# TAU is the update rate of the target network
 LR = 1e-4
 BATCH_SIZE = 128
-GAMMA = 0.99
+GAMMA = 0.9
 TAU = 1  # 0.005
 
 
@@ -126,10 +130,8 @@ class Simulator:
             self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
             self.memory = ReplayMemory(10000)
 
-            self.weights_l1 = self.policy_net.layer1.weight.data.tolist()
-            self.weights_l2 = self.policy_net.layer2.weight.data.tolist()
-            self.weights_l3 = self.policy_net.layer3.weight.data.tolist()
-
+            self.loss_trend = []
+            self.reward_trend = []
             self.train_count = 0
 
         print("Device: ", config.DEVICE)
@@ -349,14 +351,7 @@ class Simulator:
         # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
 
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        # todo check if we can remove non_final_mask
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)),
-                                      device=config.DEVICE,
-                                      dtype=torch.bool)
-
-        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        next_state_batch = torch.cat(batch.next_state)
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
@@ -371,15 +366,17 @@ class Simulator:
         # on the "older" target_net; selecting their best reward with max(1)[0].
         # This is merged based on the mask, such that we'll have either the expected
         # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(BATCH_SIZE, device=config.DEVICE)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            next_state_values = self.target_net(next_state_batch).max(1)[0]
+
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
         # Compute Huber loss
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+        self.loss_trend.append([self.cur_step, loss.item()])
 
         # Optimize the model
         self.optimizer.zero_grad()
@@ -408,6 +405,11 @@ class Simulator:
         print("Closing simulation")
         print("Len memory: ", len(self.memory))
         print("Train count: ", self.train_count)
+        print("Expired packet: ", len(self.expired_pkt))
+
+        self.metrics.train_count = self.train_count
+        self.metrics.loss_trend = self.loss_trend
+        self.metrics.reward_trend = self.reward_trend
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
