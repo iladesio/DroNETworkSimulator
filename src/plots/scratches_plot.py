@@ -2123,13 +2123,21 @@ pd_datas = []
 for i in range(10):
     pd_datas.append([i] + paperino[i])
 
+
+groups = ['{-1}', '[0 - 0.25)', '[0.25 - 0.5)', '[0.5 - 0.75)', '[0.75 - 1)', '{+1}']
 df = pd.DataFrame(pd_datas,
-                  columns=['Action', 'a', 'b', 'c', 'd', 'e', 'f'])
+                  columns=['Actions']+groups)
 
-df.plot(x="Action", kind='bar', stacked=True,
-        title='Stacked Bar Graph by dataframe')
+# red, maroon, brown, yellow_orange, peach, lime
+colors = ["#FF0000", "#800000", "#A0522D", "#FFAA33", "#FFE5B4", "#32CD32", "#32CD32"]
+ax = df.plot(x="Actions", kind='bar', stacked=True, title='Rewards for actions (percentage)',
+        color=colors, rot=0)
+
+handles, labels = ax.get_legend_handles_labels()
+ax.legend(reversed(handles), reversed(labels), bbox_to_anchor=(1.0, 1.0), loc='upper left')
+plt.tight_layout()
+
 plt.show()
-
 
 # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 6.5))
 # labels = ["-1", "0 - 0.25", "0.25 - 0.5", "0.5 - 0.75", "0.75 - 1", "1"]
