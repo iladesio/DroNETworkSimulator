@@ -110,9 +110,12 @@ class BASE_routing(metaclass=abc.ABCMeta):
             # send packets
             for pkd in self.drone.all_packets():
 
-                self.simulator.metrics.mean_numbers_of_possible_relays.append(len(opt_neighbors))
+                if self.simulator.routing_algorithm.name == "ARDEEP_QL":
+                    neighbours_list = [("", n) for n in neighbours]
+                else:
+                    neighbours_list = opt_neighbors
 
-                neighbours_list = [("", n) for n in neighbours]
+                self.simulator.metrics.mean_numbers_of_possible_relays.append(len(neighbours_list))
 
                 best_neighbor = self.relay_selection(neighbours_list, pkd)  # compute score
 

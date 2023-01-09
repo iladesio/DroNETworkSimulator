@@ -261,7 +261,10 @@ class ARDeepLearningRouting(BASE_routing):
                 d_ui_bj = 0 if dist_bj_destination == 0 else \
                     dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
 
-                reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
+                reward = (self.omega * d_ui_bj + (1 - self.omega) * remaining_energy) * outcome
+
+            tot_reward = self.simulator.reward_trend[-1][1] if self.simulator.reward_trend else 0
+            self.simulator.reward_trend.append([self.simulator.cur_step, tot_reward + reward])
 
             """ update metrics """
             self.simulator.metrics.rewards_actions[self.drone.identifier][action].append(reward)

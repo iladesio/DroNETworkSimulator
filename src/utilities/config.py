@@ -43,9 +43,9 @@ STATISTICS_RUN_PATH = "data/statistics"
 
 """ ---------------- AR_DEEP constants ---------------- """
 CALCULATE_NEXT_STATE_DELTA = 50
-TRAINING_DELTA = 500
+UPDATE_WEIGHTS_DELTA = 500
 
-SAVE_ARDEEP_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
+SAVE_RUN_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
 
 # current data -> sim_duration: 200_000 n_drones: 20
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
@@ -58,7 +58,7 @@ REPLAY_MEMORY_PT = "data/ar-deep/replay_memory.pt"
 SAVE_MODEL_DICT = False  # bool: save model dict after training
 READ_MODEL_DICT = False  # bool: save model dict after training
 # file path of the model (saved after training and read before run the simulation)
-TRAIN_MODEL = False  # bool: call optimize_model() fnc to train model on simulator close
+TRAIN_MODEL = True  # bool: call optimize_model() fnc to train model on simulator close
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
 
 SAVE_CONNECTION_TIME_DATA = False  # bool: save connection time data to the file
@@ -76,6 +76,8 @@ IS_SHOW_NEXT_TARGET_VEC = True  # bool : whether show the direction and next tar
 
 SAVE_PLOT = False  # bool: whether to save the plots of the simulation or not.
 SAVE_PLOT_DIR = "data/plots/"
+
+SAVE_METRICS = True
 
 # add constants here...
 

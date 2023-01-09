@@ -5,6 +5,7 @@ from collections import defaultdict
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import wandb
 from tqdm import tqdm
 
 from src.drawing import pp_draw
@@ -29,6 +30,7 @@ LR = 1e-4
 BATCH_SIZE = 128
 GAMMA = 0.9
 TAU = 1  # 0.005
+LR_DEC_SPEED = 1000
 
 
 class Simulator:
@@ -57,7 +59,8 @@ class Simulator:
                  routing_algorithm=config.ROUTING_ALGORITHM,
                  communication_error_type=config.CHANNEL_ERROR_TYPE,
                  prob_size_cell_r=config.CELL_PROB_SIZE_R,
-                 simulation_name=""):
+                 simulation_name="",
+                 train_model=config.TRAIN_MODEL):
         self.cur_step = None
         self.drone_com_range = drone_com_range
         self.drone_sen_range = drone_sen_range
@@ -83,6 +86,7 @@ class Simulator:
         self.routing_algorithm = routing_algorithm
         self.communication_error_type = communication_error_type
         self.max_connection_time = None
+        self.train_model = train_model
         self.sim_metrics = {}
 
         # --------------- cell for drones -------------
@@ -104,7 +108,8 @@ class Simulator:
         self.__set_simulation()
         self.__set_metrics()
 
-        self.simulation_name = "out__" + str(self.seed) + "_" + str(self.n_drones) + "_" + str(self.routing_algorithm)
+        self.simulation_name = "new_out__" + str(self.seed) + "_" + str(self.n_drones) + "_" + str(
+            self.routing_algorithm)
         self.simulation_test_dir = self.simulation_name + "/"
 
         self.start = time.time()
@@ -133,6 +138,15 @@ class Simulator:
             self.loss_trend = []
             self.reward_trend = []
             self.train_count = 0
+            self.learning_rate_trend = []
+
+            wandb.init(project="ardeep_ql", entity="complottisti")
+
+            wandb.config = {
+                "learning_rate": LR,
+                "epochs": 10_000,
+                "batch_size": BATCH_SIZE
+            }
 
         print("Device: ", config.DEVICE)
 
@@ -292,7 +306,7 @@ class Simulator:
                 self.__plot(cur_step)
 
             # train model
-            if self.routing_algorithm.name == "ARDEEP_QL" and config.TRAIN_MODEL:
+            if self.routing_algorithm.name == "ARDEEP_QL" and self.train_model:
                 self.optimize_model()
 
         if config.SAVE_CONNECTION_TIME_DATA:
@@ -376,6 +390,8 @@ class Simulator:
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
+        wandb.log({"loss": loss})
+
         self.loss_trend.append([self.cur_step, loss.item()])
 
         # Optimize the model
@@ -385,9 +401,17 @@ class Simulator:
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
+        if self.cur_step > LR_DEC_SPEED:
+            learning_rate = LR / (1 + self.cur_step / LR_DEC_SPEED)
+
+            for g in self.optimizer.param_groups:
+                g['lr'] = learning_rate
+
+            self.learning_rate_trend.append([self.cur_step, learning_rate])
+
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ) θ′
-        if self.cur_step % config.TRAINING_DELTA == 0:
+        if self.cur_step % config.UPDATE_WEIGHTS_DELTA == 0:
             target_net_state_dict = self.target_net.state_dict()
             policy_net_state_dict = self.policy_net.state_dict()
             for key in policy_net_state_dict:
@@ -403,39 +427,26 @@ class Simulator:
     def close(self):
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
-        print("Len memory: ", len(self.memory))
-        print("Train count: ", self.train_count)
-        print("Expired packet: ", len(self.expired_pkt))
 
-        self.metrics.train_count = self.train_count
-        self.metrics.loss_trend = self.loss_trend
-        self.metrics.reward_trend = self.reward_trend
+        if self.routing_algorithm.name == "ARDEEP_QL":
+            print("Len memory: ", len(self.memory))
+            print("Train count: ", self.train_count)
+
+            self.metrics.train_count = self.train_count
+            self.metrics.loss_trend = self.loss_trend
+            self.metrics.reward_trend = self.reward_trend
+            self.metrics.learning_rate_trend = self.learning_rate_trend
+            self.metrics.len_memory = len(self.memory)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project
-        # self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
-
-        # weights_l1_final = self.policy_net.layer1.weight.data.tolist()
-        # weights_l2_final = self.policy_net.layer2.weight.data.tolist()
-        # weights_l3_final = self.policy_net.layer3.weight.data.tolist()
-        #
-        # weights_diff = []
-        #
-        # for r in range(len(weights_l1_final)):
-        #     row = []
-        #     for i in range(len(weights_l1_final[r])):
-        #         diff = weights_l1_final[r][i] - self.weights_l1[r][i]
-        #         if diff > 0.1:
-        #             print("sium " + diff)
-        #         row.append(diff)
-        #
-        #     weights_diff.append(row)
-        #
-        # print(weights_diff)
+        if config.SAVE_METRICS:
+            self.save_metrics(config.ROOT_EVALUATION_DATA + 'dql/' + self.simulation_name)
 
     def get_metrics(self):
         self.sim_metrics.update(self.metrics.get_metrics())
-        self.sim_metrics["len memory"] = len(self.memory)
+        if self.routing_algorithm.name == "ARDEEP_QL":
+            self.sim_metrics["len memory"] = len(self.memory)
 
         return self.sim_metrics
 

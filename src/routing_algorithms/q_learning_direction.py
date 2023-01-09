@@ -103,7 +103,7 @@ class QLearningRoutingDirection(BASE_routing):
                 else:
                     p2 = sub_history[0]
 
-                current_cell = util.TraversedCells.coord_to_cell(size_cell=self.simulator.env_width / 4,
+                current_cell = util.TraversedCells.coord_to_cell(size_cell=self.simulator.env_width / 2 + 1,
                                                                  width_area=self.simulator.env_width,
                                                                  x_pos=p1[0],
                                                                  y_pos=p1[1])[0]
@@ -156,8 +156,7 @@ class QLearningRoutingDirection(BASE_routing):
 
         direction = util.map_angle_to_state(util.get_angle_degree(self.drone.coords, self.drone.next_target()))
 
-        cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.env_width / 4,
-                                                       # size_cell=self.simulator.prob_size_cell
+        cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.env_width / 2 + 1,
                                                        width_area=self.simulator.env_width,
                                                        x_pos=self.drone.coords[0],  # e.g. 1500
                                                        y_pos=self.drone.coords[1])[0]  # e.g. 500
