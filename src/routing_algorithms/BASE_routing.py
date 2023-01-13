@@ -73,6 +73,7 @@ class BASE_routing(metaclass=abc.ABCMeta):
     def send_packets(self, cur_step):
         """ procedure 3 -> choice next hop and try to send it the data packet """
 
+        # get neighbours list checking euclidian distance to the current drone range
         neighbours = [n[0] for n in self.drone.get_neighbours()]
 
         # FLOW 0
@@ -101,11 +102,13 @@ class BASE_routing(metaclass=abc.ABCMeta):
 
                 opt_neighbors.append((hpk, hpk.src_drone))
 
-            if len(opt_neighbors) == 0:
-                return
-
-            if len(neighbours) == 0:
-                return
+            # check if there is no neighbour
+            if self.simulator.routing_algorithm.name == "ARDEEP_QL":
+                if len(neighbours) == 0:
+                    return
+            else:
+                if len(opt_neighbors) == 0:
+                    return
 
             # send packets
             for pkd in self.drone.all_packets():

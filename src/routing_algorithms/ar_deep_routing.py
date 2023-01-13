@@ -1,21 +1,12 @@
 import math
 import random
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as f
 
 from src.routing_algorithms.BASE_routing import BASE_routing
 from src.utilities import utilities as util, config
-
-# set up matplotlib
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
-    from IPython import display
-
-plt.ion()
 
 # EPS_START is the starting value of epsilon
 # EPS_END is the final value of epsilon
@@ -26,12 +17,16 @@ EPS_DECAY = 1000
 
 
 class ARDeepLearningRouting(BASE_routing):
+    """
+        -------- state definition --------
 
-    # C ui, bj = (ct ui,bj,         expected connection time of the link
-    #               PER ui, bj,     Packet Error Ratio of the link
-    #               e bj            remaining energy of neighbor bj
-    #               d bj, des,      distance between neighbor bj and destination des
-    #               d min)          minimum distance between a two hop neighbor bk and des
+        C ui, bj = (ct ui,bj,         expected connection time of the link
+                      PER ui, bj,     Packet Error Ratio of the link
+                      e bj            remaining energy of neighbor bj
+                      d bj, des,      distance between neighbor bj and destination des
+                      d min)          minimum distance between a two hop neighbor bk and des
+
+    """
 
     def __init__(self, drone, simulator):
         BASE_routing.__init__(self, drone=drone, simulator=simulator)
@@ -45,18 +40,16 @@ class ARDeepLearningRouting(BASE_routing):
 
         self.connection_time_min = 6  # 1 sec
 
-        # dictionary to store (cur_state, chose_action identifier, next_state, reward) for each packet
+        # dictionary to store (cur_state, chose_action identifier, next_state) for each packet
         # key: event identifier
         # next_state is set to None the first time, and it'll be set after a delta time in the main simulator cycle
         self.taken_actions = {}
 
         # dictionary to store metadata about taken_action
         # key: event identifier
-        # value: (drone_coords, action_coords) data saved at the moment in which it has chosen the action
+        # value: (drone_coords, action_coords, is_local_minimum) data saved at the moment
+        #         in which it has chosen the action
         self.taken_action_meta = {}
-
-        # example parameters
-        self.episode_durations = []
 
     def select_action(self, state, opt_neighbors):
         # Strategy: Epsilon-Greedy
@@ -68,37 +61,11 @@ class ARDeepLearningRouting(BASE_routing):
             # Exploit - choose the best action
             with torch.no_grad():
                 # get action from the Q-NN, giving current state
-                results = F.softmax(self.simulator.policy_net(state), dim=1)
+                results = f.softmax(self.simulator.policy_net(state), dim=1)
                 return self.simulator.drones[torch.argmax(results).item()]
         else:
             # Explore - choose a random drone
-            return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])
-
-    # todo da capire
-    def plot_durations(self, show_result=False):
-        plt.figure(1)
-        durations_t = torch.tensor(self.episode_durations, dtype=torch.float)
-        if show_result:
-            plt.title('Result')
-        else:
-            plt.clf()
-            plt.title('Training...')
-        plt.xlabel('Episode')
-        plt.ylabel('Duration')
-        plt.plot(durations_t.numpy())
-        # Take 100 episode averages and plot them too
-        if len(durations_t) >= 100:
-            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
-
-        plt.pause(0.001)  # pause a bit so that plots are updated
-        if is_ipython:
-            if not show_result:
-                display.display(plt.gcf())
-                display.clear_output(wait=True)
-            else:
-                display.display(plt.gcf())
+            return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])  # todo non viene considerato self
 
     def get_current_state(self, list_drones, step):
         state = {}
@@ -135,9 +102,11 @@ class ARDeepLearningRouting(BASE_routing):
             nn = neighbor.get_neighbours()
             min_distance_bk_des = 9999999
             for n in nn:
-                distance_n_depot = util.euclidean_distance(n[0].coords, self.drone.depot.coords)
-                if distance_n_depot < min_distance_bk_des:
-                    min_distance_bk_des = distance_n_depot
+                # exclude current drone from the two hop neighbors list of its neighbors
+                if n[0].identifier is not self.drone.identifier:
+                    distance_n_depot = util.euclidean_distance(n[0].coords, self.drone.depot.coords)
+                    if distance_n_depot < min_distance_bk_des:
+                        min_distance_bk_des = distance_n_depot
 
             # C ui, bj = (ct ui,bj,         expected connection time of the link
             #               PER ui, bj,     Packet Error Ratio of the link
@@ -167,17 +136,21 @@ class ARDeepLearningRouting(BASE_routing):
         """ STATE OF CURRENT DRONE """
         min_distance_bk_des = 9999999
         for n in list_drones:
-            distance_n_depot = util.euclidean_distance(n.coords, self.simulator.depot_coordinates)
-            if distance_n_depot < min_distance_bk_des:
-                min_distance_bk_des = distance_n_depot
+            if n.identifier is not self.drone.identifier:
+                distance_n_depot = util.euclidean_distance(n.coords, self.simulator.depot_coordinates)
+                if distance_n_depot < min_distance_bk_des:
+                    min_distance_bk_des = distance_n_depot
 
-        connection_time = 1
-        packet_error_ratio = 0
+        # todo remove(?)
+        # this two values doesn't represent how drones actual work - it's just to increase NN performance
+        connection_time = random.uniform(0, .2)
+        packet_error_ratio = random.uniform(0, .2)
+
         remaining_energy = self.drone.residual_energy / self.simulator.drone_max_energy
         dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
         dist_bj_destination = 1
 
-        min_distance_bk_des = 0 if dist_ui_destination == 0 else \
+        min_distance_bk_des = 1 if dist_ui_destination == 0 else \
             np.minimum(min_distance_bk_des / dist_ui_destination, 1)
 
         # build the tuple with each state starting from the complete list of drones
@@ -240,15 +213,33 @@ class ARDeepLearningRouting(BASE_routing):
              ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
             """
 
-            # when neighbor bj is the destination
+            # packet arrives to the depot
             if outcome == 1:
-                reward = self.R_max
+                # when neighbor bj is the destination
+                if action == drone.identifier:
+                    reward = self.R_max
+
+                # when bj is a relay in the src-dest path
+                else:
+                    dist_ui_destination = util.euclidean_distance(drone_coords_prev, self.simulator.depot_coordinates)
+                    dist_bj_destination = util.euclidean_distance(action_coords_prev, self.simulator.depot_coordinates)
+                    connection_time = chosen_state[0] * self.simulator.max_connection_time  # denormalize value
+                    packet_error_ratio = chosen_state[1]
+                    remaining_energy = chosen_state[2]
+
+                    beta = 1 if connection_time >= self.connection_time_min else 0
+
+                    d_ui_bj = 0 if dist_bj_destination == 0 else \
+                        dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
+
+                    reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
 
             # when neighbor bj is the local minimum
             # (all neighbors of node ui are further away from the destination than node ui)
             elif is_local_minimum is True:
                 reward = - self.R_max
 
+            # negative reward if packet expires todo remove me(?)
             else:
                 dist_ui_destination = util.euclidean_distance(drone_coords_prev, self.simulator.depot_coordinates)
                 dist_bj_destination = util.euclidean_distance(action_coords_prev, self.simulator.depot_coordinates)
@@ -261,13 +252,14 @@ class ARDeepLearningRouting(BASE_routing):
                 d_ui_bj = 0 if dist_bj_destination == 0 else \
                     dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
 
-                reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
-
-            tot_reward = self.simulator.reward_trend[-1][1] if self.simulator.reward_trend else 0
-            self.simulator.reward_trend.append([self.simulator.cur_step, tot_reward + reward])
+                reward = -(self.omega * d_ui_bj + (1 - self.omega) * remaining_energy)
 
             """ update metrics """
             self.simulator.metrics.rewards_actions[self.drone.identifier][action].append(reward)
+
+            # update tot_reward metrics
+            tot_reward = self.simulator.reward_trend[-1][1] if self.simulator.reward_trend else 0
+            self.simulator.reward_trend.append([self.simulator.cur_step, tot_reward + reward])
 
             """ save sample in experience ReplayMemory """
             state = torch.Tensor(state).to(config.DEVICE)

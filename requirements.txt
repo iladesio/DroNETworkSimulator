@@ -3,8 +3,10 @@
 scipy==1.4.1
 numpy==1.18.4
 matplotlib==3.2.1
-Keras==2.4.2
 pandas==1.0.5
-tensorflow==2.2.0
 pygame==1.9.6  # you may need to install this package (or dependencies) by apt-get
 seaborn==0.10.1
+wandb~=0.13.7
+torch~=1.13.1+cu117
+tqdm~=4.64.1
+ipython~=7.34.0

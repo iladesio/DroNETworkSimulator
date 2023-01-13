@@ -1,6 +1,8 @@
 import math
 import time
 from collections import defaultdict
+from contextlib import nullcontext
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -21,16 +23,6 @@ This file contains the Simulation class. It allows to explicit all the relevant 
 as default all the parameters are set to be those in the config file. For extensive experimental campains, 
 you can initialize the Simulator with non default values. 
 """
-
-# LR is the learning rate of the AdamW optimize
-# BATCH_SIZE is the number of transitions sampled from the replay buffer
-# GAMMA is the discount factor as mentioned in the previous section
-# TAU is the update rate of the target network
-LR = 1e-4
-BATCH_SIZE = 128
-GAMMA = 0.9
-TAU = 1  # 0.005
-LR_DEC_SPEED = 1000
 
 
 class Simulator:
@@ -108,8 +100,10 @@ class Simulator:
         self.__set_simulation()
         self.__set_metrics()
 
-        self.simulation_name = "new_out__" + str(self.seed) + "_" + str(self.n_drones) + "_" + str(
-            self.routing_algorithm)
+        start_time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+        self.simulation_name = "test_out__" + start_time + "_" + str(self.n_drones) + "_" + \
+                               str(self.len_simulation) + "_" + str(self.routing_algorithm.name)
+
         self.simulation_test_dir = self.simulation_name + "/"
 
         self.start = time.time()
@@ -132,7 +126,7 @@ class Simulator:
             self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
+            self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=config.LR, amsgrad=True)
             self.memory = ReplayMemory(10000)
 
             self.loss_trend = []
@@ -140,13 +134,7 @@ class Simulator:
             self.train_count = 0
             self.learning_rate_trend = []
 
-            wandb.init(project="ardeep_ql", entity="complottisti")
-
-            wandb.config = {
-                "learning_rate": LR,
-                "epochs": 10_000,
-                "batch_size": BATCH_SIZE
-            }
+            self.wandb_config = None
 
         print("Device: ", config.DEVICE)
 
@@ -248,75 +236,98 @@ class Simulator:
             old_vals[2] = old_vals[0] / max(1, old_vals[1])
             self.cell_prob_map[index_cell] = old_vals
 
-    def run(self):
+    def run(self, w_config=None):
         """
         Simulator main function
         @return: None
         """
 
-        """ ---- initialize simulator variabiles ---- """
-        self.max_connection_time = utilities.get_max_connection_time(self.drones)
+        # initialize wandb sweep variables to execute consecutive run
+        if config.RUN_WITH_SWEEP:
+            self.wandb_config = w_config
 
-        for drone in self.drones:
-            self.metrics.rewards_actions[drone.identifier] = {}
+            self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
+            self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
+            self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            for action in self.drones:
-                self.metrics.rewards_actions[drone.identifier][action.identifier] = []
-        """ ----------------------------------------- """
+            self.loss_trend = []
+            self.reward_trend = []
+            self.train_count = 0
+            self.learning_rate_trend = []
 
-        for cur_step in tqdm(range(self.len_simulation)):
+            self.wandb_config = None
 
-            self.cur_step = cur_step
-            # check for new events and remove the expired ones from the environment
-            # self.environment.update_events(cur_step)
-            # sense the area and move drones and sense the area
-            self.network_dispatcher.run_medium(cur_step)
+        # Initialize a new wandb run according to config.RUN_WITH_SWEEP
+        with wandb.init(config=self.wandb_config) if config.RUN_WITH_SWEEP else nullcontext():
+            """ ---- initialize simulator variabiles - required it after drone deployed ---- """
 
-            # generates events
-            # sense the events
-            self.event_generator.handle_events_generation(cur_step, self.drones)
-
-            if config.SAVE_CONNECTION_TIME_DATA and self.routing_algorithm.name == "ARDEEP_QL":
-                for drone in self.drones:
-                    self.get_connection_time_data(cur_step, drone)
+            self.max_connection_time = utilities.get_max_connection_time(self.drones)
 
             for drone in self.drones:
-                # 1. update expired packets on drone buffers
-                # 2. try routing packets vs other drones or depot
-                # 3. actually move the drone towards next waypoint or depot
+                self.metrics.rewards_actions[drone.identifier] = {}
 
-                drone.update_packets(cur_step)
-                drone.routing(self.drones, self.depot, cur_step)
-                drone.move(self.time_step_duration)
+                for action in self.drones:
+                    self.metrics.rewards_actions[drone.identifier][action.identifier] = []
 
-            """ ----------------- update next_state ----------------- """
-            # todo da rivedere delta
-            if self.routing_algorithm.name == "ARDEEP_QL" and cur_step % config.CALCULATE_NEXT_STATE_DELTA == 0:
+            """ ----------------------------------------- """
+
+            for cur_step in tqdm(range(self.len_simulation)):
+
+                self.cur_step = cur_step
+                # check for new events and remove the expired ones from the environment
+                # self.environment.update_events(cur_step)
+                # sense the area and move drones and sense the area
+                self.network_dispatcher.run_medium(cur_step)
+
+                # generates events
+                # sense the events
+                self.event_generator.handle_events_generation(cur_step, self.drones)
+
+                if config.SAVE_CONNECTION_TIME_DATA and self.routing_algorithm.name == "ARDEEP_QL":
+                    for drone in self.drones:
+                        self.get_connection_time_data(cur_step, drone)
+
                 for drone in self.drones:
-                    list_neighbors = [d[0] for d in drone.get_neighbours()]
+                    # 1. update expired packets on drone buffers
+                    # 2. try routing packets vs other drones or depot
+                    # 3. actually move the drone towards next waypoint or depot
 
-                    # get next state
-                    drone.routing_algorithm.update_next_state(list_neighbors, self.cur_step + 1)
+                    drone.update_packets(cur_step)
+                    drone.routing(self.drones, self.depot, cur_step)
+                    drone.move(self.time_step_duration)
 
-            # in case we need probability map
-            if config.ENABLE_PROBABILITIES:
-                self.increase_meetings_probs(self.drones, cur_step)
+                """ ----------------- update next_state ----------------- """
+                if self.routing_algorithm.name == "ARDEEP_QL" and cur_step % config.CALCULATE_NEXT_STATE_DELTA == 0:
+                    for drone in self.drones:
+                        list_neighbors = [d[0] for d in drone.get_neighbours()]
 
-            if self.show_plot or config.SAVE_PLOT:
-                self.__plot(cur_step)
+                        # get next state
+                        drone.routing_algorithm.update_next_state(list_neighbors, self.cur_step + 1)
 
-            # train model
-            if self.routing_algorithm.name == "ARDEEP_QL" and self.train_model:
-                self.optimize_model()
+                # in case we need probability map
+                if config.ENABLE_PROBABILITIES:
+                    self.increase_meetings_probs(self.drones, cur_step)
 
-        if config.SAVE_CONNECTION_TIME_DATA:
-            utilities.save_connection_time_data(self.drones)
+                if self.show_plot or config.SAVE_PLOT:
+                    self.__plot(cur_step)
 
-        if config.DEBUG:
-            print("End of simulation, sim time: " + str(
-                (cur_step + 1) * self.time_step_duration) + " sec, #iteration: " + str(cur_step + 1))
+                # train model
+                if self.routing_algorithm.name == "ARDEEP_QL" and self.train_model \
+                        and self.train_count < config.TRAIN_STEP_LIMIT:
+                    self.optimize_model()
 
-    def get_connection_time_data(self, cur_step, drone):
+            if config.SAVE_CONNECTION_TIME_DATA:
+                utilities.save_connection_time_data(self.drones)
+
+            if config.RUN_WITH_SWEEP:
+                wandb.log({"epochs": self.train_count})
+
+            if config.DEBUG:
+                print("End of simulation, sim time: " + str(
+                    (cur_step + 1) * self.time_step_duration) + " sec, #iteration: " + str(cur_step + 1))
+
+    @staticmethod
+    def get_connection_time_data(cur_step, drone):
 
         error_range = 5
 
@@ -353,13 +364,23 @@ class Simulator:
 
     def optimize_model(self):
 
+        if config.RUN_WITH_SWEEP:
+            # If called by wandb.agent, as below,
+            # this config will be set by Sweep Controller
+            w_config = wandb.config
+            batch_size = w_config.batch_size
+            learning_rate = w_config.learning_rate
+        else:
+            batch_size = config.BATCH_SIZE
+            learning_rate = config.LR
+
         # Perform one step of the optimization (on the policy network)
-        if len(self.memory) < BATCH_SIZE:
+        if len(self.memory) < batch_size:
             return
 
         self.train_count += 1
 
-        transitions = self.memory.sample(BATCH_SIZE)
+        transitions = self.memory.sample(batch_size)
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
@@ -384,25 +405,39 @@ class Simulator:
             next_state_values = self.target_net(next_state_batch).max(1)[0]
 
         # Compute the expected Q values
-        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        expected_state_action_values = (next_state_values * config.GAMMA) + reward_batch
 
         # Compute Huber loss
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
-        wandb.log({"loss": loss})
-
+        # update loss trend metric
         self.loss_trend.append([self.cur_step, loss.item()])
+
+        # todo check it
+        self.optimizer = optim.AdamW(self.policy_net.parameters(),
+                                     lr=learning_rate, amsgrad=True)
 
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
+
         # In-place gradient clipping
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
-        if self.cur_step > LR_DEC_SPEED:
-            learning_rate = LR / (1 + self.cur_step / LR_DEC_SPEED)
+        if config.RUN_WITH_SWEEP:
+            # log metrics in wandb current run
+            mean_reward = torch.mean(reward_batch)
+            sum_reward = torch.sum(reward_batch)
+
+            wandb.log({"loss": loss.item(),
+                       "mean_reward": mean_reward.item(),
+                       "sum_reward": sum_reward.item()})
+
+        # update learning rate only if there isn't a wandb run
+        if not config.RUN_WITH_SWEEP and self.cur_step % config.LR_DEC_SPEED == 0:
+            learning_rate = config.LR / (1 + self.cur_step / config.LR_DEC_SPEED)
 
             for g in self.optimizer.param_groups:
                 g['lr'] = learning_rate
@@ -415,8 +450,8 @@ class Simulator:
             target_net_state_dict = self.target_net.state_dict()
             policy_net_state_dict = self.policy_net.state_dict()
             for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key] * TAU + \
-                                             target_net_state_dict[key] * (1 - TAU)
+                target_net_state_dict[key] = policy_net_state_dict[key] * config.TAU + \
+                                             target_net_state_dict[key] * (1 - config.TAU)
 
             self.target_net.load_state_dict(target_net_state_dict)
 
@@ -437,6 +472,9 @@ class Simulator:
             self.metrics.reward_trend = self.reward_trend
             self.metrics.learning_rate_trend = self.learning_rate_trend
             self.metrics.len_memory = len(self.memory)
+
+            # save the replay memory in a file
+            # self.memory.save_memory(config.REPLAY_MEMORY_OBJ)
 
         self.print_metrics(plot_id="final")
         # make sure to have output directory in the project

@@ -18,7 +18,7 @@ For this, we're going to need two classes:
    transitions observed recently. It also implements a ``.sample()``
    method for selecting a random batch of transitions for training.
 """
-import json
+import pickle
 import random
 from collections import namedtuple, deque
 
@@ -38,8 +38,16 @@ class ReplayMemory(object):
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
 
-    def get_json(self):
-        return json.dumps(self.memory)
+    def save_memory(self, filename):
+        with open(filename, 'wb') as out:
+            pickle.dump(self, out)
+
+    @staticmethod
+    def from_file(filename):
+        """ load the metrics from a file """
+        with open(filename, 'rb') as handle:
+            obj = pickle.load(handle)
+        return obj
 
     def __len__(self):
         return len(self.memory)
