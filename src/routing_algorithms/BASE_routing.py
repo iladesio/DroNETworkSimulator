@@ -89,6 +89,7 @@ class BASE_routing(metaclass=abc.ABCMeta):
             self.current_n_transmission = 0
             return
 
+        # FLOW 2
         if cur_step % self.simulator.drone_retransmission_delta == 0:
 
             opt_neighbors = []
@@ -103,24 +104,19 @@ class BASE_routing(metaclass=abc.ABCMeta):
                 opt_neighbors.append((hpk, hpk.src_drone))
 
             # check if there is no neighbour
-            if self.simulator.routing_algorithm.name == "ARDEEP_QL":
-                if len(neighbours) == 0:
-                    return
-            else:
-                if len(opt_neighbors) == 0:
-                    return
+            if len(neighbours) == 0:
+                return
 
             # send packets
             for pkd in self.drone.all_packets():
 
-                if self.simulator.routing_algorithm.name == "ARDEEP_QL":
-                    neighbours_list = [("", n) for n in neighbours]
-                else:
-                    neighbours_list = opt_neighbors
+                neighbours_list = [(
+                    HelloPacket(self.drone, cur_step, self.simulator, self.drone.coords,
+                                self.drone.speed, self.drone.next_target()), n) for n in neighbours]
 
                 self.simulator.metrics.mean_numbers_of_possible_relays.append(len(neighbours_list))
 
-                best_neighbor = self.relay_selection(neighbours_list, pkd)  # compute score
+                best_neighbor = self.relay_selection(neighbours_list, pkd)
 
                 if best_neighbor is not None:
                     self.unicast_message(pkd, self.drone, best_neighbor, cur_step)

@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as f
 
 from src.routing_algorithms.BASE_routing import BASE_routing
+from src.routing_algorithms.georouting import GeoRouting
 from src.utilities import utilities as util, config
 
 # EPS_START is the starting value of epsilon
@@ -62,10 +63,12 @@ class ARDeepLearningRouting(BASE_routing):
             with torch.no_grad():
                 # get action from the Q-NN, giving current state
                 results = f.softmax(self.simulator.policy_net(state), dim=1)
+
                 return self.simulator.drones[torch.argmax(results).item()]
         else:
-            # Explore - choose a random drone
-            return self.simulator.rnd_routing.choice([v[1] for v in opt_neighbors])  # todo non viene considerato self
+            # Explore - choose a drone based on georouting
+            geo_relay = GeoRouting.relay_selection(self, opt_neighbors, None)
+            return self.drone if geo_relay is None else geo_relay
 
     def get_current_state(self, list_drones, step):
         state = {}
@@ -141,10 +144,8 @@ class ARDeepLearningRouting(BASE_routing):
                 if distance_n_depot < min_distance_bk_des:
                     min_distance_bk_des = distance_n_depot
 
-        # todo remove(?)
-        # this two values doesn't represent how drones actual work - it's just to increase NN performance
-        connection_time = random.uniform(0, .2)
-        packet_error_ratio = random.uniform(0, .2)
+        connection_time = 1
+        packet_error_ratio = 0
 
         remaining_energy = self.drone.residual_energy / self.simulator.drone_max_energy
         dist_ui_destination = util.euclidean_distance(self.drone.coords, self.simulator.depot_coordinates)
@@ -206,12 +207,7 @@ class ARDeepLearningRouting(BASE_routing):
 
             chosen_state = state[action]
 
-            """ 
-            ------------- CALCULATE REWARD ------------- 
-             Rmax, when neighbor bj is the destination
-            −Rmax, when neighbor bj is the local minimum
-             ω * Dui,bj + (1 − ω) * ( ebj / Ebj ), otherwise
-            """
+            """ ------------- CALCULATE REWARD ------------- """
 
             # packet arrives to the depot
             if outcome == 1:
@@ -229,17 +225,20 @@ class ARDeepLearningRouting(BASE_routing):
 
                     beta = 1 if connection_time >= self.connection_time_min else 0
 
-                    d_ui_bj = 0 if dist_bj_destination == 0 else \
+                    d_ui_bj = 1 if dist_bj_destination == 0 else \
                         dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
 
                     reward = self.omega * d_ui_bj + (1 - self.omega) * remaining_energy
+
+                    # bound the reward in (0, Rmax]
+                    reward = np.minimum(reward, self.R_max)
 
             # when neighbor bj is the local minimum
             # (all neighbors of node ui are further away from the destination than node ui)
             elif is_local_minimum is True:
                 reward = - self.R_max
 
-            # negative reward if packet expires todo remove me(?)
+            # negative reward if packet expires
             else:
                 dist_ui_destination = util.euclidean_distance(drone_coords_prev, self.simulator.depot_coordinates)
                 dist_bj_destination = util.euclidean_distance(action_coords_prev, self.simulator.depot_coordinates)
@@ -249,15 +248,18 @@ class ARDeepLearningRouting(BASE_routing):
 
                 beta = 1 if connection_time >= self.connection_time_min else 0
 
-                d_ui_bj = 0 if dist_bj_destination == 0 else \
+                d_ui_bj = 1 if dist_bj_destination == 0 else \
                     dist_ui_destination / dist_bj_destination * (1 - packet_error_ratio) * beta
 
-                reward = -(self.omega * d_ui_bj + (1 - self.omega) * remaining_energy)
+                reward = - (self.R_max - (self.omega * d_ui_bj + (1 - self.omega) * remaining_energy))
+
+                # bound the reward in [-Rmax, 0)
+                reward = np.maximum(reward, -self.R_max)
 
             """ update metrics """
             self.simulator.metrics.rewards_actions[self.drone.identifier][action].append(reward)
 
-            # update tot_reward metrics
+            """ update tot_reward metrics """
             tot_reward = self.simulator.reward_trend[-1][1] if self.simulator.reward_trend else 0
             self.simulator.reward_trend.append([self.simulator.cur_step, tot_reward + reward])
 
@@ -265,6 +267,7 @@ class ARDeepLearningRouting(BASE_routing):
             state = torch.Tensor(state).to(config.DEVICE)
             next_state = torch.Tensor(next_state).to(config.DEVICE)
 
+            # 5 are the elements of C ui, bj
             state = torch.reshape(state, (1, self.simulator.n_observations * 5))
             next_state = torch.reshape(next_state, (1, self.simulator.n_observations * 5))
 
@@ -272,7 +275,7 @@ class ARDeepLearningRouting(BASE_routing):
                                        torch.tensor([[action]], dtype=torch.int64, device=config.DEVICE),
                                        next_state, torch.Tensor([reward]).to(config.DEVICE))
 
-            # remove the entry, the action has received the feedback
+            """ remove the entry, the action has received the feedback """
             del self.taken_actions[id_event]
 
     def relay_selection(self, opt_neighbors: list, packet):
@@ -288,7 +291,8 @@ class ARDeepLearningRouting(BASE_routing):
         state = self.get_current_state(list_neighbors, self.simulator.cur_step)
 
         state_tensor = torch.Tensor(state).to(config.DEVICE)
-        state_tensor = torch.reshape(state_tensor, (1, self.simulator.n_observations * 5))
+        state_tensor = torch.reshape(state_tensor,
+                                     (1, self.simulator.n_observations * 5))  # 5 are the elements of C ui, bj
 
         chosen_action = self.select_action(state_tensor, opt_neighbors)
 

@@ -101,6 +101,8 @@ class Metrics:
         self.packet_mean_delivery_time = np.mean(packet_delivery_times) * self.simulator.time_step_duration
         self.event_mean_delivery_time = np.mean(event_delivery_times) * self.simulator.time_step_duration
 
+        self.packet_delivery_times_std = np.std(packet_delivery_times)
+
         self.mean_rewards_actions = {}
 
         for drone in self.simulator.drones:
@@ -151,6 +153,7 @@ class Metrics:
             "number_of_packets_to_depot": self.number_of_packets_to_depot,
             "mean_number_of_relays": np.nanmean(self.mean_numbers_of_possible_relays),
             "packet_mean_delivery_time": self.packet_mean_delivery_time,
+            "packet_delivery_times_std": self.packet_delivery_times_std
         }
 
     def info_mission(self):
@@ -201,6 +204,7 @@ class Metrics:
         out_results["number_of_events_to_depot"] = self.number_of_events_to_depot
         out_results["number_of_packets_to_depot"] = self.number_of_packets_to_depot
         out_results["packet_mean_delivery_time"] = self.packet_mean_delivery_time
+        out_results["packet_delivery_times_std"] = self.packet_delivery_times_std
         out_results["event_mean_delivery_time"] = self.event_mean_delivery_time
         # out_results["time_on_mission"] = self.time_on_mission
         out_results["packet_delivery_ratio"] = self.number_of_packets_to_depot / self.all_data_packets_in_simulation
@@ -213,6 +217,10 @@ class Metrics:
         out_results["drones_to_depot_packets"] = [(pck.to_json(), delivery_ts) for pck, delivery_ts in
                                                   self.drones_packets_to_depot]
         out_results["mean_number_of_relays"] = np.nanmean(self.mean_numbers_of_possible_relays)
+
+        out_results["mean_numbers_of_possible_relays"] = self.mean_numbers_of_possible_relays
+
+        out_results["std_dev_numbers_of_possible_relays"] = np.std(self.mean_numbers_of_possible_relays)
 
         if self.simulator.routing_algorithm.name == "ARDEEP_QL":
             out_results["rewards_actions"] = self.rewards_actions

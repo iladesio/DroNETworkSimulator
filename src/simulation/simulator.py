@@ -101,7 +101,7 @@ class Simulator:
         self.__set_metrics()
 
         start_time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        self.simulation_name = "test_out__" + start_time + "_" + str(self.n_drones) + "_" + \
+        self.simulation_name = "plot_out__" + start_time + "___" + str(self.n_drones) + "_" + \
                                str(self.len_simulation) + "_" + str(self.routing_algorithm.name)
 
         self.simulation_test_dir = self.simulation_name + "/"
@@ -248,6 +248,8 @@ class Simulator:
 
             self.policy_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
             self.target_net = DQN(self.n_observations * 5, self.n_actions).to(config.DEVICE)
+            self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=config.LR, amsgrad=True)
+
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
             self.loss_trend = []
@@ -414,10 +416,6 @@ class Simulator:
         # update loss trend metric
         self.loss_trend.append([self.cur_step, loss.item()])
 
-        # todo check it
-        self.optimizer = optim.AdamW(self.policy_net.parameters(),
-                                     lr=learning_rate, amsgrad=True)
-
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
@@ -436,13 +434,13 @@ class Simulator:
                        "sum_reward": sum_reward.item()})
 
         # update learning rate only if there isn't a wandb run
-        if not config.RUN_WITH_SWEEP and self.cur_step % config.LR_DEC_SPEED == 0:
-            learning_rate = config.LR / (1 + self.cur_step / config.LR_DEC_SPEED)
+        # if not config.RUN_WITH_SWEEP and self.cur_step % config.LR_DEC_SPEED == 0:
+        #     learning_rate = config.LR / (1 + self.cur_step / config.LR_DEC_SPEED)
 
-            for g in self.optimizer.param_groups:
-                g['lr'] = learning_rate
+        # for g in self.optimizer.param_groups:
+        #     g['lr'] = learning_rate
 
-            self.learning_rate_trend.append([self.cur_step, learning_rate])
+        # self.learning_rate_trend.append([self.cur_step, learning_rate])
 
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ) θ′

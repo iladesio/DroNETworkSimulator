@@ -47,17 +47,17 @@ STATISTICS_RUN_PATH = "data/statistics"
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
 # TAU is the update rate of the target network
-LR = 1e-5
-BATCH_SIZE = 128
+LR = 0.00004690593429019178  # 1e-5
+BATCH_SIZE = 8
 GAMMA = 0.9
 TAU = 1  # 0.005
 LR_DEC_SPEED = 1000
 
-CALCULATE_NEXT_STATE_DELTA = 30
+CALCULATE_NEXT_STATE_DELTA = 10
 UPDATE_WEIGHTS_DELTA = 500
 
 RUN_WITH_SWEEP = False  # bool: starts a wandb sweep to tunnel hyperparameter
-SAVE_RUN_METRICS_TXT = True  # bool: output all simulation metrics and times in a txt file
+SAVE_RUN_METRICS_TXT = False  # bool: output all simulation metrics and times in a txt file
 
 # current data -> sim_duration: 200_000 n_drones: 20
 CONNECTION_TIME_JSON = "data/ar-deep/connection_time.json"  # str: the path to connection time data
@@ -70,7 +70,7 @@ SAVE_MODEL_DICT = False  # bool: save model dict after training
 READ_MODEL_DICT = False  # bool: save model dict after training
 
 TRAIN_MODEL = True  # bool: call optimize_model() fnc to train model on simulator close
-TRAIN_STEP_LIMIT = 15_000
+TRAIN_STEP_LIMIT = 10_000
 
 # file path of the model (saved after training and read before run the simulation)
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"
