@@ -14,35 +14,37 @@ def main():
 
         output_filename = config.STATISTICS_RUN_PATH + "/statistics" + start_time + ".txt"
 
-        for sim_duration in [50]:
-            for n_drones in [10, 15, 20, 25, 30]:
+        for seed in range(30):
+            for sim_duration in [25]:
+                for n_drones in [5, 10, 15, 20, 25, 40, 50]:
 
-                with open(output_filename, "w") as f:
-                    f.write("Num drones: " + str(n_drones))
-                    f.write("\nSim duration: " + str(sim_duration))
+                    with open(output_filename, "w") as f:
+                        f.write("Num drones: " + str(n_drones))
+                        f.write("\nSim duration: " + str(sim_duration))
 
-                    f.write("\nStart: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                        f.write("\nStart: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
-                    for algo in [RoutingAlgorithm.ARDEEP_QL]:
+                        for algo in [RoutingAlgorithm.DIR_QL]:
 
-                        f.write("\n\nStart run " + algo.name + ": " + datetime.now().strftime("%H:%M:%S"))
+                            f.write("\n\nStart run " + algo.name + ": " + datetime.now().strftime("%H:%M:%S"))
 
-                        """ the place where to run simulations and experiments. """
-                        sim = Simulator(
-                            routing_algorithm=algo,
-                            n_drones=n_drones,
-                            len_simulation=sim_duration * 1000
-                        )
-                        sim.run()  # run the simulation
-                        sim.close()
+                            """ the place where to run simulations and experiments. """
+                            sim = Simulator(
+                                routing_algorithm=algo,
+                                n_drones=n_drones,
+                                len_simulation=sim_duration * 1000,
+                                seed=seed
+                            )
+                            sim.run()  # run the simulation
+                            sim.close()
 
-                        metrics = sim.get_metrics()
-                        for key in metrics.keys():
-                            f.write("\n" + key + ": " + str(metrics[key]))
+                            metrics = sim.get_metrics()
+                            for key in metrics.keys():
+                                f.write("\n" + key + ": " + str(metrics[key]))
 
-                        f.write("\nEnd run " + algo.name + ": " + datetime.now().strftime("%H:%M:%S"))
+                            f.write("\nEnd run " + algo.name + ": " + datetime.now().strftime("%H:%M:%S"))
 
-                    f.write("\nEnd: " + datetime.now().strftime("%H:%M:%S"))
+                        f.write("\nEnd: " + datetime.now().strftime("%H:%M:%S"))
 
     elif config.RUN_WITH_SWEEP:
 

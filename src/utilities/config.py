@@ -48,7 +48,7 @@ STATISTICS_RUN_PATH = "data/statistics"
 # GAMMA is the discount factor as mentioned in the previous section
 # TAU is the update rate of the target network
 LR = 0.00004690593429019178  # 1e-5
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 GAMMA = 0.9
 TAU = 1  # 0.005
 LR_DEC_SPEED = 1000
@@ -70,7 +70,7 @@ SAVE_MODEL_DICT = False  # bool: save model dict after training
 READ_MODEL_DICT = False  # bool: save model dict after training
 
 TRAIN_MODEL = True  # bool: call optimize_model() fnc to train model on simulator close
-TRAIN_STEP_LIMIT = 10_000
+TRAIN_STEP_LIMIT = 15_000
 
 # file path of the model (saved after training and read before run the simulation)
 MODEL_STATE_DICT_PATH = "data/ar-deep/model_state_dict.pt"

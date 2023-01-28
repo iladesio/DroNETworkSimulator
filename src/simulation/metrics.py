@@ -197,30 +197,35 @@ class Metrics:
         self.other_metrics()
 
         out_results = {"mission_setup": self.mission_setup}
-        out_results["number_of_generated_events"] = self.number_of_generated_events
-        out_results["number_of_detected_events"] = self.number_of_detected_events
+        # out_results["number_of_generated_events"] = self.number_of_generated_events
+        # out_results["number_of_detected_events"] = self.number_of_detected_events
         # out_results["number_of_not_generated_events"] = self.number_of_not_generated_events
         # out_results["throughput"] = self.number_of_packets_to_depot / (self.mission_setup["len_simulation"] * self.mission_setup["time_step_duration"])
+
         out_results["number_of_events_to_depot"] = self.number_of_events_to_depot
         out_results["number_of_packets_to_depot"] = self.number_of_packets_to_depot
+
         out_results["packet_mean_delivery_time"] = self.packet_mean_delivery_time
         out_results["packet_delivery_times_std"] = self.packet_delivery_times_std
-        out_results["event_mean_delivery_time"] = self.event_mean_delivery_time
+
+        # out_results["event_mean_delivery_time"] = self.event_mean_delivery_time
         # out_results["time_on_mission"] = self.time_on_mission
+
         out_results["packet_delivery_ratio"] = self.number_of_packets_to_depot / self.all_data_packets_in_simulation
+
         # out_results["all_control_packets_in_simulation"] = self.all_control_packets_in_simulation
         out_results["all_data_packets_in_simulation"] = self.all_data_packets_in_simulation
         # out_results["all_events"] = [ev.to_json() for ev in self.events]
         # out_results["not_listened_events"] = [ev.to_json() for ev in self.events_not_listened]
         # out_results["events_delivery_times"] = [str(e) for e in self.event_delivery_times]
         # out_results["drones_packets"] = [pck.to_json() for pck in self.drones_packets]
-        out_results["drones_to_depot_packets"] = [(pck.to_json(), delivery_ts) for pck, delivery_ts in
-                                                  self.drones_packets_to_depot]
+        # out_results["drones_to_depot_packets"] = [(pck.to_json(), delivery_ts) for pck,
+        # delivery_ts in self.drones_packets_to_depot]
+
         out_results["mean_number_of_relays"] = np.nanmean(self.mean_numbers_of_possible_relays)
-
-        out_results["mean_numbers_of_possible_relays"] = self.mean_numbers_of_possible_relays
-
         out_results["std_dev_numbers_of_possible_relays"] = np.std(self.mean_numbers_of_possible_relays)
+
+        # out_results["mean_numbers_of_possible_relays"] = self.mean_numbers_of_possible_relays
 
         if self.simulator.routing_algorithm.name == "ARDEEP_QL":
             out_results["rewards_actions"] = self.rewards_actions

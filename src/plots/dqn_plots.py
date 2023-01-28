@@ -24,26 +24,34 @@ METRICS_OF_INTEREST = [
 
 METRICS_OF_INTEREST_LIST = [
     {"code": "packet_delivery_ratio", "description": "Packet delivery ratio"},
-    # {"code": "packet_mean_delivery_time", "description": "Packet mean delivery time"},
-    # {"code": "mean_number_of_relays", "description": "Mean number of relays"},
+    {"code": "packet_mean_delivery_time", "description": "Packet mean delivery time"},
+    {"code": "mean_number_of_relays", "description": "Mean number of relays"},
 ]
 
-dir_ql_data = {50000: {10: {
-    'DIR_QL': {'packet_delivery_ratio': 0.5896103896103896, 'packet_mean_delivery_time': 95.67687224669602,
-               'mean_number_of_relays': 1.2649750415973378, 'packet_delivery_times_std': 432.9509215327459,
-               'std_dev_numbers_of_possible_relays': 0.5206006673451304}}, 15: {
-    'DIR_QL': {'packet_delivery_ratio': 0.7155844155844155, 'packet_mean_delivery_time': 100.0350272232305,
-               'mean_number_of_relays': 1.4924492421276359, 'packet_delivery_times_std': 438.4015461036849,
-               'std_dev_numbers_of_possible_relays': 0.7453542241760092}}, 20: {
-    'DIR_QL': {'packet_delivery_ratio': 0.7025974025974026, 'packet_mean_delivery_time': 95.44685767097967,
-               'mean_number_of_relays': 1.6206297502714442, 'packet_delivery_times_std': 441.9226607570802,
-               'std_dev_numbers_of_possible_relays': 0.8637155909870313}}, 25: {
-    'DIR_QL': {'packet_delivery_ratio': 0.7974025974025974, 'packet_mean_delivery_time': 96.17882736156352,
-               'mean_number_of_relays': 1.7967168133219793, 'packet_delivery_times_std': 427.04502680935025,
-               'std_dev_numbers_of_possible_relays': 0.9962673298030006}}, 30: {
-    'DIR_QL': {'packet_delivery_ratio': 0.8519480519480519, 'packet_mean_delivery_time': 97.95045731707317,
-               'mean_number_of_relays': 2.055549478198088, 'packet_delivery_times_std': 406.7558183018557,
-               'std_dev_numbers_of_possible_relays': 1.1411426998623453}}}}
+dir_ql_data = {
+    25000:
+        {5: {'DIR_QL': {'packet_delivery_ratio': 0.4868398268398268, 'packet_mean_delivery_time': 98.26269106388924,
+                        'mean_number_of_relays': 1.047388067472493, 'packet_delivery_times_std': 70.0975605905746,
+                        'std_dev_numbers_of_possible_relays': 0.03176572896891097}}, 10: {
+            'DIR_QL': {'packet_delivery_ratio': 0.5587878787878787, 'packet_mean_delivery_time': 97.26862487428401,
+                       'mean_number_of_relays': 1.25035317029461, 'packet_delivery_times_std': 67.74647390120798,
+                       'std_dev_numbers_of_possible_relays': 0.07423009694784577}}, 15: {
+            'DIR_QL': {'packet_delivery_ratio': 0.6743722943722943, 'packet_mean_delivery_time': 101.66328410844564,
+                       'mean_number_of_relays': 1.4674652433989317, 'packet_delivery_times_std': 65.42960015087664,
+                       'std_dev_numbers_of_possible_relays': 0.10540298802603155}}, 20: {
+            'DIR_QL': {'packet_delivery_ratio': 0.6996536796536799, 'packet_mean_delivery_time': 100.91552484741257,
+                       'mean_number_of_relays': 1.603266265634031, 'packet_delivery_times_std': 64.58365965066474,
+                       'std_dev_numbers_of_possible_relays': 0.12398794939374636}}, 25: {
+            'DIR_QL': {'packet_delivery_ratio': 0.8005194805194804, 'packet_mean_delivery_time': 97.12477801675585,
+                       'mean_number_of_relays': 1.7983360669920452, 'packet_delivery_times_std': 63.26328965037957,
+                       'std_dev_numbers_of_possible_relays': 0.14252821800425472}}, 40: {
+            'DIR_QL': {'packet_delivery_ratio': 0.8990476190476188, 'packet_mean_delivery_time': 91.47366413838027,
+                       'mean_number_of_relays': 2.5445279928008224, 'packet_delivery_times_std': 60.23264882562124,
+                       'std_dev_numbers_of_possible_relays': 0.21650327861232074}}, 50: {
+            'DIR_QL': {'packet_delivery_ratio': 0.9289177489177489, 'packet_mean_delivery_time': 88.87439493923141,
+                       'mean_number_of_relays': 3.132715109044326, 'packet_delivery_times_std': 57.767651545298214,
+                       'std_dev_numbers_of_possible_relays': 0.2682499122323546}}}
+}
 
 MAP_ALGO_TO_LABEL = {
     "RND": "Rand",
@@ -512,7 +520,7 @@ def plot_list(algorithms: list,
 
         # ax1.fill_between(x_data, y1, y2, alpha=.2, color=PLOT_DICT[alg]["color"])
 
-        ax1.plot(x_data, [np.mean(y_data[alg])] * 5)
+    # ax1.plot(x_data, [np.mean(y_data[alg])] * 5)
 
     ax1.set_ylabel(ylabel=type["description"], fontsize=LABEL_SIZE)
     ax1.set_xlabel(xlabel="Number of drones", fontsize=LABEL_SIZE)
@@ -528,10 +536,8 @@ def plot_list(algorithms: list,
     # plt.savefig("src/plots/figures/" + type + ".svg")
     # plt.savefig("./figures/" + type["code"] + "_list.png", dpi=400)
 
-    plt.show()
-
-    # plt.savefig("./figures/ardeep_ql_" + type["code"] + "_list.png", dpi=400)
-    # plt.clf()
+    plt.savefig("./figures/dir_ql_" + type["code"] + ".png", dpi=400)
+    plt.clf()
 
 
 def catplot(rewards_to_plot):
@@ -623,11 +629,12 @@ if __name__ == "__main__":
             plot(algorithm="ARDEEP_QL", x_data=xvalue, y_data_std=y_data_std, y_data=yvalue, type=metric)
 
     if PLOT_LIST:
-        algorithms = ["ARDEEP_QL"]  # , "RND", "GEO", "DIR_QL"]
+        algorithms = ["DIR_QL"]  # , "RND", "GEO", "DIR_QL"]
 
         for metric in METRICS_OF_INTEREST_LIST:
-            datas = read_data_from_files()
-            datas = datas[50000]
+            # datas = read_data_from_files()
+            # datas = datas[50000]
+            datas = dir_ql_data[25000]
 
             xvalue = []
             y_data_std = {}
@@ -664,13 +671,34 @@ if __name__ == "__main__":
             #                   0.936021233637639]
             # }
 
-            # y_data_std = None
-            # if metric["code"] is "packet_mean_delivery_time":
-            #     y_data_std = datas[n_drone][algo]["packet_delivery_times_std"]
-            # elif metric["code"] is "mean_number_of_relays":
-            #     y_data_std = datas[n_drone][algo]["std_dev_numbers_of_possible_relays"]
+            std_dev_dir_ql = {
+                5: 0.02133123197611567,
+                10: 0.02170796044220235,
+                15: 0.018651730043117168,
+                20: 0.017365513675023522,
+                25: 0.01967178828962232,
+                40: 0.01681616205202393,
+                50: 0.013150201280095091
+            }
 
-            plot_list(algorithms=["ARDEEP_QL"], x_data=xvalue, y_data_std=y_data_std, y_data=yvalue,
+            y_data_std = None
+            if metric["code"] is "packet_delivery_ratio":
+                y_data_std = std_dev_dir_ql[n_drone]
+
+            elif metric["code"] is "packet_mean_delivery_time":
+                if not y_data_std:
+                    y_data_std = []
+
+                for n_drone in datas.keys():  # x-axies
+                    y_data_std.append(datas[n_drone][algo]["packet_delivery_times_std"])
+
+            elif metric["code"] is "mean_number_of_relays":
+                if not y_data_std:
+                    y_data_std = []
+                for n_drone in datas.keys():  # x-axies
+                    y_data_std.append(datas[n_drone][algo]["std_dev_numbers_of_possible_relays"])
+
+            plot_list(algorithms=["DIR_QL"], x_data=xvalue, y_data_std={"DIR_QL": y_data_std}, y_data=yvalue,
                       # algorithms=algorithms
                       type=metric)
 

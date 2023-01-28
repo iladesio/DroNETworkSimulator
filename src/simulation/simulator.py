@@ -299,7 +299,7 @@ class Simulator:
                     drone.move(self.time_step_duration)
 
                 """ ----------------- update next_state ----------------- """
-                if self.routing_algorithm.name == "ARDEEP_QL" and cur_step % config.CALCULATE_NEXT_STATE_DELTA == 0:
+                if self.routing_algorithm.name == "ARDEEP_QL" and cur_step + 1 % config.CALCULATE_NEXT_STATE_DELTA == 0:
                     for drone in self.drones:
                         list_neighbors = [d[0] for d in drone.get_neighbours()]
 
